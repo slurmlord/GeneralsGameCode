@@ -451,6 +451,7 @@ WWINLINE void* FastAllocatorGeneral::Alloc(unsigned int n)
 			AllocatedWithMallocCount++;
 		}
       pMemory = ::malloc(n);
+      WWASSERT(pMemory);
 	}
 #ifdef MEMORY_OVERWRITE_TEST
 	*((unsigned int*)((char*)pMemory+n)-1)=0xabbac0de;
