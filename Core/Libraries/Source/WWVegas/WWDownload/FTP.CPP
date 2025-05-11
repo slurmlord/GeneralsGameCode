@@ -33,7 +33,6 @@
 #include <time.h>
 #include "assert.h"
 #include "ftp.h"
-#include <time.h>
 #include <direct.h>
 #include <errno.h>
 //#include "wlib/wstring.h"
