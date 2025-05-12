@@ -1145,8 +1145,6 @@ TextureClass * WW3DAssetManager::Get_Texture
 		{
 			tex = NEW_REF (TextureClass, (lower_case_name, NULL, mip_level_count, texture_format, allow_compression));
 		}
-
-		WWASSERT(tex);
 		TextureHash.Insert(tex->Get_Texture_Name(),tex);
 	}
 
