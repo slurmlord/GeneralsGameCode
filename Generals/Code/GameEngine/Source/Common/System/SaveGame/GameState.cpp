@@ -236,7 +236,7 @@ UnicodeString getUnicodeDateBuffer(SYSTEMTIME timeVal)
 								 DATE_SHORTDATE,
 								 &timeVal,
 								 NULL,
-								 dateBuffer, sizeof(dateBuffer) );
+								 dateBuffer, DATE_BUFFER_SIZE );
 	displayDateBuffer.set(dateBuffer);
 	return displayDateBuffer;
 	//displayDateBuffer.format( L"%ls", dateBuffer );
@@ -270,7 +270,7 @@ UnicodeString getUnicodeTimeBuffer(SYSTEMTIME timeVal)
 								 &timeVal,
 								 NULL,
 								 timeBuffer,
-								 sizeof(timeBuffer) );
+								 TIME_BUFFER_SIZE );
 	displayTimeBuffer.set(timeBuffer);
 	return displayTimeBuffer;
 }
