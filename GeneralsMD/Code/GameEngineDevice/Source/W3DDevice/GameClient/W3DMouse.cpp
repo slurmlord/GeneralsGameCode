@@ -235,7 +235,7 @@ void W3DMouse::initD3DAssets(void)
 			for (Int j=0; j < MAX_2D_CURSOR_ANIM_FRAMES; j++)
 			{
 				cursorTextures[i][j]=NULL;//am->Get_Texture(m_cursorInfo[i].textureName.str());
-				m_currentD3DSurface[i]=NULL;
+				m_currentD3DSurface[j]=NULL;
 			}
 		}
 	}
