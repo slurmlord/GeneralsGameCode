@@ -951,12 +951,12 @@ Bool GameState::isPathInDirectory(const AsciiString& testPath, const AsciiString
 
 	if (basePathNormalized.isEmpty())
 	{
-		DEBUG_CRASH(("Unable to normalize base directory path '%s'.", basePath.str()));
+		DEBUG_CRASH(("Unable to normalize base directory path '%s'.\n", basePath.str()));
 		return false;
 	}
 	else if (filePathNormalized.isEmpty())
 	{
-		DEBUG_CRASH(("Unable to normalize file path '%s'.", testPath.str()));
+		DEBUG_CRASH(("Unable to normalize file path '%s'.\n", testPath.str()));
 		return false;
 	}
 #ifdef _WIN32
@@ -975,7 +975,7 @@ Bool GameState::isPathInDirectory(const AsciiString& testPath, const AsciiString
 	if (!filePathNormalized.startsWith(basePathNormalized))
 #endif
 	{
-		DEBUG_CRASH(("Normalized file path for '%s': '%s' was outside the expected base path of '%s' (normalized: '%s').", testPath.str(), filePathNormalized.str(), basePath.str(), basePathNormalized.str()));
+		DEBUG_CRASH(("Normalized file path for '%s': '%s' was outside the expected base path of '%s' (normalized: '%s').\n", testPath.str(), filePathNormalized.str(), basePath.str(), basePathNormalized.str()));
 		return false;
 	}
 

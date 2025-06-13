@@ -689,7 +689,7 @@ void ConnectionManager::processFile(NetFileCommandMsg *msg)
 #endif
 
 	AsciiString realFileName = msg->getRealFilename();
-	DEBUG_ASSERTLOG((!realFileName.isEmpty(), "Got a file name transferred that failed to normalize: '%s'!", msg->getPortableFilename().str()));
+	DEBUG_ASSERTLOG((!realFileName.isEmpty(), "Got a file name transferred that failed to normalize: '%s'!\n", msg->getPortableFilename().str()));
 
 	if (realFileName.isEmpty())
 	{
