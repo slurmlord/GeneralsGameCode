@@ -783,7 +783,7 @@ AsciiString GameState::getFilePathInSaveDirectory(const AsciiString& leaf) const
 //-------------------------------------------------------------------------------------------------
 Bool GameState::isInSaveDirectory(const AsciiString& path) const
 {
-	return isPathInDirectory(path, getSaveDirectory());
+	return FileSystem::isPathInDirectory(path, getSaveDirectory());
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -935,51 +935,13 @@ AsciiString GameState::portableMapPathToRealMapPath(const AsciiString& in) const
 		return AsciiString::TheEmptyString;
 	}
 
-	if (!isPathInDirectory(prefix, containingBasePath))
+	if (!FileSystem::isPathInDirectory(prefix, containingBasePath))
 	{
 		return AsciiString::TheEmptyString;
 	}
 
 	prefix.toLower();
 	return prefix;
-}
-
-Bool GameState::isPathInDirectory(const AsciiString& testPath, const AsciiString& basePath) const
-{
-	AsciiString filePathNormalized = TheFileSystem->normalizePath(testPath);
-	AsciiString basePathNormalized = TheFileSystem->normalizePath(basePath);
-
-	if (basePathNormalized.isEmpty())
-	{
-		DEBUG_CRASH(("Unable to normalize base directory path '%s'.\n", basePath.str()));
-		return false;
-	}
-	else if (filePathNormalized.isEmpty())
-	{
-		DEBUG_CRASH(("Unable to normalize file path '%s'.\n", testPath.str()));
-		return false;
-	}
-#ifdef _WIN32
-	if (!basePathNormalized.endsWith("\\"))
-	{
-		basePathNormalized.concat("\\");
-	}
-
-	if (!filePathNormalized.startsWithNoCase(basePathNormalized))
-#else
-	if (!basePathNormalized.endsWith("/"))
-	{
-		basePathNormalized.concat("/");
-	}
-
-	if (!filePathNormalized.startsWith(basePathNormalized))
-#endif
-	{
-		DEBUG_CRASH(("Normalized file path for '%s': '%s' was outside the expected base path of '%s' (normalized: '%s').\n", testPath.str(), filePathNormalized.str(), basePath.str(), basePathNormalized.str()));
-		return false;
-	}
-
-	return true;
 }
 
 // ------------------------------------------------------------------------------------------------

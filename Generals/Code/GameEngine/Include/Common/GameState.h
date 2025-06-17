@@ -195,8 +195,6 @@ public:
 
 	AsciiString getMapLeafName(const AsciiString& in) const;
 
-	Bool isPathInDirectory(const AsciiString& testPath, const AsciiString& basePath) const;
-
 protected:
 
 	// snapshot methods
