@@ -217,13 +217,21 @@ Bool Win32LocalFileSystem::createDirectory(AsciiString directory)
 
 AsciiString Win32LocalFileSystem::normalizePath(const AsciiString& filePath) const
 {
-	TCHAR normalizeBuffer[MAX_PATH];
-	DWORD charsWritten = GetFullPathName(filePath.str(), MAX_PATH, normalizeBuffer, NULL);
-	if (charsWritten == 0 || charsWritten > MAX_PATH)
+	DWORD retval = GetFullPathNameA(filePath.str(), 0, NULL, NULL);
+	if (retval == 0)
 	{
+		DEBUG_LOG(("Unable to determine buffer size for normalized file path. Error=(%d).\n", GetLastError()));
 		// empty string is used as a non-success
 		return AsciiString::TheEmptyString;
 	}
 
-	return AsciiString(normalizeBuffer);
+	AsciiString normalizedFilePath;
+	retval = GetFullPathNameA(filePath.str(), retval, normalizedFilePath.getBufferForRead(retval - 1), NULL);
+	if (retval == 0)
+	{
+		DEBUG_LOG(("Unable to normalize file path '%s'. Error=(%d).\n", filePath.str(), GetLastError()));
+		return AsciiString::TheEmptyString;
+	}
+
+	return normalizedFilePath;
 }
