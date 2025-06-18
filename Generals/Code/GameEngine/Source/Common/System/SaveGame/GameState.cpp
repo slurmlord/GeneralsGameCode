@@ -930,6 +930,7 @@ AsciiString GameState::portableMapPathToRealMapPath(const AsciiString& in) const
 	else
 	{
 		DEBUG_CRASH(("Map file was not found in any of the expected directories; this is impossible"));
+		// Empty string represents a failure, either caused by an invalid prefix or a relative path leading outside the base path
 		return AsciiString::TheEmptyString;
 	}
 
