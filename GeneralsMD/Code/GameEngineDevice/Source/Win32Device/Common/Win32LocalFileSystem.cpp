@@ -220,8 +220,7 @@ AsciiString Win32LocalFileSystem::normalizePath(const AsciiString& filePath) con
 	DWORD retval = GetFullPathNameA(filePath.str(), 0, NULL, NULL);
 	if (retval == 0)
 	{
-		DEBUG_LOG(("Unable to determine buffer size for normalized file path. Error=(%d).\n", GetLastError()));
-		// empty string is used as a non-success
+		DEBUG_LOG(("Unable to determine buffer size for normalized file path. Error=(%u).\n", GetLastError()));
 		return AsciiString::TheEmptyString;
 	}
 
@@ -229,7 +228,7 @@ AsciiString Win32LocalFileSystem::normalizePath(const AsciiString& filePath) con
 	retval = GetFullPathNameA(filePath.str(), retval, normalizedFilePath.getBufferForRead(retval - 1), NULL);
 	if (retval == 0)
 	{
-		DEBUG_LOG(("Unable to normalize file path '%s'. Error=(%d).\n", filePath.str(), GetLastError()));
+		DEBUG_LOG(("Unable to normalize file path '%s'. Error=(%u).\n", filePath.str(), GetLastError()));
 		return AsciiString::TheEmptyString;
 	}
 

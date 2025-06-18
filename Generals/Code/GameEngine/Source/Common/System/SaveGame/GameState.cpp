@@ -930,8 +930,6 @@ AsciiString GameState::portableMapPathToRealMapPath(const AsciiString& in) const
 	else
 	{
 		DEBUG_CRASH(("Map file was not found in any of the expected directories; this is impossible"));
-		//throw INI_INVALID_DATA;
-		// uncaught exceptions crash us. better to just use a bad path.
 		return AsciiString::TheEmptyString;
 	}
 
