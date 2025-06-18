@@ -344,7 +344,7 @@ AsciiString StdLocalFileSystem::normalizePath(const AsciiString& filePath) const
 {
 	std::string nonNormalized(filePath.str());
 #ifndef _WIN32
-	// Replace backslashes with forward slashes on unix
+	// Replace backslashes with forward slashes on non-Windows platforms
 	std::replace(unNormalized.begin(), unNormalized.end(), '\\', '/');
 #endif
 	std::filesystem::path pathNonNormalized(nonNormalized);

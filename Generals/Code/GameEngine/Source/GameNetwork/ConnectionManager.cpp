@@ -689,11 +689,12 @@ void ConnectionManager::processFile(NetFileCommandMsg *msg)
 #endif
 
 	AsciiString realFileName = msg->getRealFilename();
-	DEBUG_ASSERTLOG((!realFileName.isEmpty(), "Got a file name transferred that failed to normalize: '%s'!\n", msg->getPortableFilename().str()));
-
 	if (realFileName.isEmpty())
 	{
-		// As the file name failed to normalize (in other words is bogus), do nothing and let the transfer time out.
+		// TheSuperHackers @security slurmlord 18/06/2025 As the file name/path from the NetFileCommandMsg failed to normalize,
+		// in other words is bogus and points outside of the approved target directory, avoid an arbitrary file overwrite vulnerability
+		// by simply returning and let the transfer time out.
+		DEBUG_LOG(("Got a file name transferred that failed to normalize: '%s'!\n", msg->getPortableFilename().str()));
 		return;
 	}
 
