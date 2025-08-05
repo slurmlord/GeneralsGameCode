@@ -466,13 +466,12 @@ void WriteStackLine(void*address, void (*callback)(const char*))
 			g_LastErrorDump.concat("\n");
 		}
 	callback(line);
-	callback("\n");
 }
 
 
 //*****************************************************************************
 //*****************************************************************************
-void DumpExceptionInfo( unsigned int u, EXCEPTION_POINTERS* e_info )
+void DumpExceptionInfo( EXCEPTION_POINTERS* e_info )
 {
 	DEBUG_LOG_RAW(("\n"));
 	DEBUG_LOG(( "********** EXCEPTION DUMP ****************" ));
