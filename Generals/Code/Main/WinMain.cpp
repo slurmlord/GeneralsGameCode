@@ -734,7 +734,7 @@ static CriticalSection critSec1, critSec2, critSec3, critSec4, critSec5;
 //=============================================================================
 static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info )
 {
-	DumpExceptionInfo( e_info );
+	DumpExceptionInfo( e_info->ExceptionRecord->ExceptionCode, e_info );
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
