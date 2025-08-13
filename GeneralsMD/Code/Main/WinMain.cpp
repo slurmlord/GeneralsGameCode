@@ -48,6 +48,7 @@
 #include "Common/GameEngine.h"
 #include "Common/GameSounds.h"
 #include "Common/Debug.h"
+#include "Common/MiniDump.h"
 #include "Common/GameMemory.h"
 #include "Common/StackDump.h"
 #include "Common/MessageStream.h"
@@ -763,6 +764,7 @@ static CriticalSection critSec1, critSec2, critSec3, critSec4, critSec5;
 static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info )
 {
 	DumpExceptionInfo( e_info->ExceptionRecord->ExceptionCode, e_info );
+	CreateMiniDump(e_info);
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
