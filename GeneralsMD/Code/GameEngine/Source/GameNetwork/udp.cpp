@@ -34,6 +34,7 @@
 #include "Common/GameEngine.h"
 //#include "GameNetwork/NetworkInterface.h"
 #include "GameNetwork/udp.h"
+#include "GameClient/ClientInstance.h"
 
 
 //-------------------------------------------------------------------------
@@ -163,6 +164,18 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
   #endif
   if (fd==-1)
     return(UNKNOWN);
+
+#if defined (RTS_MULTI_INSTANCE)
+  // set SO_REUSEADDR so multiple instances can bind to the same port
+  const Int val = TRUE;
+  retval = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&val, sizeof(Int));
+  if (retval == SOCKET_ERROR)
+  {
+    m_lastError = WSAGetLastError();
+    status = GetStatus();
+    return status;
+  }
+#endif
 
   retval=bind(fd,(struct sockaddr *)&addr,sizeof(addr));
 
