@@ -100,9 +100,6 @@ void LANAPI::init( void )
 {
 	m_gameStartTime = 0;
 	m_gameStartSeconds = 0;
-	m_transport->reset();
-	m_transport->init(m_localIP, lobbyPort);
-	m_transport->allowBroadcasts(true);
 
 	m_pendingAction = ACT_NONE;
 	m_expiration = 0;
