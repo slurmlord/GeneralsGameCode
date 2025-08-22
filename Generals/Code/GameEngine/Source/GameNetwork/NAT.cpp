@@ -621,6 +621,7 @@ void NAT::attachSlotList(GameSlot *slotList[], Int localSlot, UnsignedInt localI
 	DEBUG_LOG(("NAT::attachSlotList - using %d as the starting port number", m_startingPortNumber));
 	generatePortNumbers(slotList, localSlot);
 	m_transport->init(m_localIP, getSlotPort(localSlot));
+	m_transport->bind();
 }
 
 Int NAT::getSlotPort(Int slot) {

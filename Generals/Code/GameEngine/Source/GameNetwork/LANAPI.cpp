@@ -100,6 +100,8 @@ void LANAPI::init( void )
 {
 	m_gameStartTime = 0;
 	m_gameStartSeconds = 0;
+	m_transport->reset();
+	m_transport->init(m_localIP, lobbyPort);
 
 	m_pendingAction = ACT_NONE;
 	m_expiration = 0;
@@ -1255,6 +1257,10 @@ Bool LANAPI::SetLocalIP( UnsignedInt localIP )
 
 	m_transport->reset();
 	retval = m_transport->init(m_localIP, lobbyPort);
+	if (retval)
+	{
+		retval = m_transport->bind();
+	}
 	m_transport->allowBroadcasts(true);
 
 	return retval;

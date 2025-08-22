@@ -50,6 +50,7 @@ public:
 
 	Bool init( AsciiString ip, UnsignedShort port );
 	Bool init( UnsignedInt ip, UnsignedShort port );
+	Bool bind( void );
 	void reset( void );
 	Bool update( void );									///< Call this once a GameEngine tick, regardless of whether the frame advances.
 
@@ -80,10 +81,14 @@ public:
 	DelayedTransportMessage m_delayedInBuffer[MAX_MESSAGES];
 #endif
 
-	UnsignedShort m_port;
 private:
+
+	void clearBuffers( void );
+
 	Bool m_winsockInit;
 	UDP *m_udpsock;
+	UnsignedInt m_ip;
+	UnsignedShort m_port;
 
 	// Latency insertion and packet loss
 	Bool m_useLatency;
