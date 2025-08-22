@@ -103,51 +103,9 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 		m_winsockInit = true;
 	}
 
-	// ------- Bind our port --------
-	if (m_udpsock)
-		delete m_udpsock;
-	m_udpsock = NEW UDP();
-
-	if (!m_udpsock)
-		return false;
-
-	int retval = -1;
-	time_t now = timeGetTime();
-	while ((retval != 0) && ((timeGetTime() - now) < 1000)) {
-		retval = m_udpsock->Bind(ip, port);
-	}
-
-	if (retval != 0) {
-		DEBUG_CRASH(("Could not bind to 0x%8.8X:%d", ip, port));
-		DEBUG_LOG(("Transport::init - Failure to bind socket with error code %x", retval));
-		delete m_udpsock;
-		m_udpsock = NULL;
-		return false;
-	}
-
-	// ------- Clear buffers --------
-	int i=0;
-	for (; i<MAX_MESSAGES; ++i)
-	{
-		m_outBuffer[i].length = 0;
-		m_inBuffer[i].length = 0;
-#if defined(RTS_DEBUG)
-		m_delayedInBuffer[i].message.length = 0;
-#endif
-	}
-	for (i=0; i<MAX_TRANSPORT_STATISTICS_SECONDS; ++i)
-	{
-		m_incomingBytes[i] = 0;
-		m_outgoingBytes[i] = 0;
-		m_unknownBytes[i] = 0;
-		m_incomingPackets[i] = 0;
-		m_outgoingPackets[i] = 0;
-		m_unknownPackets[i] = 0;
-	}
-	m_statisticsSlot = 0;
-	m_lastSecond = timeGetTime();
-
+	m_ip = ip;
 	m_port = port;
+	clearBuffers();
 
 #if defined(RTS_DEBUG)
 	if (TheGlobalData->m_latencyAverage > 0 || TheGlobalData->m_latencyNoise)
@@ -160,6 +118,59 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 	return true;
 }
 
+void Transport::clearBuffers( void )
+{
+	// ------- Clear buffers --------
+	int i = 0;
+	for (; i < MAX_MESSAGES; ++i)
+	{
+		m_outBuffer[i].length = 0;
+		m_inBuffer[i].length = 0;
+#if defined(RTS_DEBUG)
+		m_delayedInBuffer[i].message.length = 0;
+#endif
+	}
+	for (i = 0; i < MAX_TRANSPORT_STATISTICS_SECONDS; ++i)
+	{
+		m_incomingBytes[i] = 0;
+		m_outgoingBytes[i] = 0;
+		m_unknownBytes[i] = 0;
+		m_incomingPackets[i] = 0;
+		m_outgoingPackets[i] = 0;
+		m_unknownPackets[i] = 0;
+	}
+	m_statisticsSlot = 0;
+	m_lastSecond = timeGetTime();
+}
+
+Bool Transport::bind( void )
+{
+	DEBUG_ASSERTCRASH(m_winsockInit, ("Transport::bind called before Transport::init"));
+
+	// ------- Bind our port --------
+	if (m_udpsock)
+		delete m_udpsock;
+	m_udpsock = NEW UDP();
+
+	if (!m_udpsock)
+		return false;
+
+	int retval = -1;
+	time_t now = timeGetTime();
+	while ((retval != 0) && ((timeGetTime() - now) < 1000)) {
+		retval = m_udpsock->Bind(m_ip, m_port);
+	}
+
+	if (retval != 0) {
+		DEBUG_CRASH(("Could not bind to 0x%8.8X:%d", m_ip, m_port));
+		DEBUG_LOG(("Transport::bind - Failure to bind socket with error code %x", retval));
+		delete m_udpsock;
+		m_udpsock = NULL;
+		return false;
+	}
+
+	clearBuffers();
+}
 void Transport::reset( void )
 {
 	if (m_udpsock)
