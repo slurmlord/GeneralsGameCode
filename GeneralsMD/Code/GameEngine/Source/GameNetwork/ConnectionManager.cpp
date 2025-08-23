@@ -1451,7 +1451,6 @@ void ConnectionManager::initTransport() {
 	m_transport = new Transport;
 	m_transport->reset();
 	m_transport->init(m_localAddr, m_localPort);
-	m_transport->bind();
 }
 
 /**

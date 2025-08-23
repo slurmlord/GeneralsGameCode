@@ -100,8 +100,6 @@ void LANAPI::init( void )
 {
 	m_gameStartTime = 0;
 	m_gameStartSeconds = 0;
-	m_transport->reset();
-	m_transport->init(m_localIP, lobbyPort);
 
 	m_pendingAction = ACT_NONE;
 	m_expiration = 0;
@@ -1252,18 +1250,15 @@ void LANAPI::addPlayer( LANPlayer *player )
 
 Bool LANAPI::SetLocalIP( UnsignedInt localIP )
 {
-	Bool success = TRUE;
+	DEBUG_ASSERTCRASH(m_currentGame == NULL && m_gameStartTime == 0, ("LANAPI::SetLocalIP called while in a game, should be called right after LANAPI::init"));
+	Bool retval = TRUE;
 	m_localIP = localIP;
 
 	m_transport->reset();
-	success = m_transport->init(m_localIP, lobbyPort);
-	if (success)
-	{
-		success = m_transport->bind();
-	}
+	retval = m_transport->init(m_localIP, lobbyPort);
 	m_transport->allowBroadcasts(true);
 
-	return success;
+	return retval;
 }
 
 void LANAPI::SetLocalIP( AsciiString localIP )
