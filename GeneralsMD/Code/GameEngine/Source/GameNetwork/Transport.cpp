@@ -118,31 +118,6 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 	return true;
 }
 
-void Transport::clearBuffers( void )
-{
-	// ------- Clear buffers --------
-	int i=0;
-	for (; i<MAX_MESSAGES; ++i)
-	{
-		m_outBuffer[i].length = 0;
-		m_inBuffer[i].length = 0;
-#if defined(RTS_DEBUG)
-		m_delayedInBuffer[i].message.length = 0;
-#endif
-	}
-	for (i=0; i<MAX_TRANSPORT_STATISTICS_SECONDS; ++i)
-	{
-		m_incomingBytes[i] = 0;
-		m_outgoingBytes[i] = 0;
-		m_unknownBytes[i] = 0;
-		m_incomingPackets[i] = 0;
-		m_outgoingPackets[i] = 0;
-		m_unknownPackets[i] = 0;
-	}
-	m_statisticsSlot = 0;
-	m_lastSecond = timeGetTime();
-}
-
 Bool Transport::bind( void )
 {
 	DEBUG_ASSERTCRASH(m_winsockInit, ("Transport::bind called before Transport::init"));
@@ -170,6 +145,32 @@ Bool Transport::bind( void )
 	}
 
 	clearBuffers();
+	return retval;
+}
+
+void Transport::clearBuffers( void )
+{
+	// ------- Clear buffers --------
+	int i=0;
+	for (; i<MAX_MESSAGES; ++i)
+	{
+		m_outBuffer[i].length = 0;
+		m_inBuffer[i].length = 0;
+#if defined(RTS_DEBUG)
+		m_delayedInBuffer[i].message.length = 0;
+#endif
+	}
+	for (i=0; i<MAX_TRANSPORT_STATISTICS_SECONDS; ++i)
+	{
+		m_incomingBytes[i] = 0;
+		m_outgoingBytes[i] = 0;
+		m_unknownBytes[i] = 0;
+		m_incomingPackets[i] = 0;
+		m_outgoingPackets[i] = 0;
+		m_unknownPackets[i] = 0;
+	}
+	m_statisticsSlot = 0;
+	m_lastSecond = timeGetTime();
 }
 
 void Transport::reset( void )

@@ -1252,18 +1252,18 @@ void LANAPI::addPlayer( LANPlayer *player )
 
 Bool LANAPI::SetLocalIP( UnsignedInt localIP )
 {
-	Bool retval = TRUE;
+	Bool success = TRUE;
 	m_localIP = localIP;
 
 	m_transport->reset();
-	retval = m_transport->init(m_localIP, lobbyPort);
-	if (retval)
+	success = m_transport->init(m_localIP, lobbyPort);
+	if (success)
 	{
-		retval = m_transport->bind();
+		success = m_transport->bind();
 	}
 	m_transport->allowBroadcasts(true);
 
-	return retval;
+	return success;
 }
 
 void LANAPI::SetLocalIP( AsciiString localIP )
