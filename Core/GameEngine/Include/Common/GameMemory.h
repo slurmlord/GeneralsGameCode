@@ -62,6 +62,9 @@
 	#define MEMORYPOOL_DEBUG
 #endif
 
+// TODO: Set this based on CMake defines, and also find a better name for it
+#define MINIDUMP_ENABLED 1
+
 // SYSTEM INCLUDES ////////////////////////////////////////////////////////////
 
 #include <new.h>
@@ -217,6 +220,9 @@
 	#define newInstance(ARGCLASS)												new(ARGCLASS::ARGCLASS##_GLUE_NOT_IMPLEMENTED) ARGCLASS
 
 #endif
+#ifdef MINIDUMP_ENABLED
+#include <iterator>
+#endif
 
 // FORWARD REFERENCES /////////////////////////////////////////////////////////
 
@@ -226,6 +232,9 @@ class MemoryPool;
 class MemoryPoolFactory;
 class DynamicMemoryAllocator;
 class BlockCheckpointInfo;
+#ifdef MINIDUMP_ENABLED
+class AllocationRangeIterator;
+#endif
 
 // TYPE DEFINES ///////////////////////////////////////////////////////////////
 
@@ -279,6 +288,14 @@ public:
 	void debugCheckpointReport(Int flags, Int startCheckpoint, Int endCheckpoint, const char *poolName);
 	/// reset all the checkpoints for this pool/dma
 	void debugResetCheckpoints();
+};
+#endif
+
+#ifdef MINIDUMP_ENABLED
+struct MemoryPoolAllocatedRange
+{
+	char* allocationAddr;
+	size_t allocationSize;
 };
 #endif
 
@@ -387,6 +404,9 @@ public:
 		/// return true iff this block was allocated by this pool.
 		Bool debugIsBlockInPool(void *pBlock);
 	#endif
+#ifdef MINIDUMP_ENABLED
+		friend class AllocationRangeIterator;
+#endif
 };
 
 // ----------------------------------------------------------------------------
@@ -477,6 +497,10 @@ public:
 		Bool debugIsPoolInDma(MemoryPool *pool);
 
 	#endif	// MEMORYPOOL_DEBUG
+#ifdef MINIDUMP_ENABLED
+		Int getRawBlockCount();
+		void getAllocationRangeForRawBlockN(Int n, MemoryPoolAllocatedRange& allocationRange);
+#endif
 };
 
 // ----------------------------------------------------------------------------
@@ -576,7 +600,53 @@ public:
 		void debugResetCheckpoints();
 
 	#endif
+#ifdef MINIDUMP_ENABLED
+		friend class AllocationRangeIterator;
+#endif
 };
+
+#ifdef MINIDUMP_ENABLED
+class AllocationRangeIterator {
+	// TODO: Tags are perhaps not useful in our case..
+	using iterator_category = std::input_iterator_tag;
+	using difference_type = std::int32_t;
+	using value_type = const MemoryPoolAllocatedRange;
+	using pointer = const MemoryPoolAllocatedRange*;
+	using reference = const MemoryPoolAllocatedRange&;
+public:
+
+	AllocationRangeIterator(const MemoryPoolFactory* factory) : m_factory(factory), m_currentPool(factory->m_firstPoolInFactory), m_currentBlobInPool(factory->m_firstPoolInFactory->m_firstBlob) {};
+	AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob) : m_currentPool(&pool), m_currentBlobInPool(&blob) {};
+	AllocationRangeIterator(MemoryPool* pool, MemoryPoolBlob* blob) : m_currentPool(pool), m_currentBlobInPool(blob) {};
+	AllocationRangeIterator() {};
+
+	reference operator*() { UpdateRange(); return m_range; }
+	pointer operator->() { return &m_range; }
+
+	// Prefix increment
+	AllocationRangeIterator& operator++() { MoveToNextBlob(); return *this; }
+
+	// Postfix increment
+	AllocationRangeIterator operator++(int) { AllocationRangeIterator tmp = *this; ++(*this); return tmp; }
+
+	friend bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b) { return a.m_currentBlobInPool == b.m_currentBlobInPool; };
+	friend bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b) { return a.m_currentBlobInPool != b.m_currentBlobInPool; };
+
+	// Begin and end methods for iterator
+	//AllocationRangeIterator begin() const { return AllocationRangeIterator(m_factory, m_factory->m_firstPoolInFactory, m_factory->m_firstPoolInFactory->m_firstBlob); }
+	AllocationRangeIterator end() const { return AllocationRangeIterator(NULL, NULL); }
+private:
+	const MemoryPoolFactory* m_factory = NULL;
+	MemoryPool* m_currentPool = NULL;
+	MemoryPoolBlob* m_currentBlobInPool = NULL;
+	// The dirty trick ? It's being reused.. Is that allowed?
+	MemoryPoolAllocatedRange m_range = {};
+	// TODO: IncrementBlobIndex -> Increments next poolIndex if reached the end of blobs.
+	// TODO: Some UpdateRange method called by each time the item is returned or something.
+	void UpdateRange();
+	void MoveToNextBlob();
+};
+#endif
 
 // how many bytes are we allowed to 'waste' per pool allocation before the debug code starts yelling at us...
 #define MEMORY_POOL_OBJECT_ALLOCATION_SLOP	16

@@ -48,10 +48,10 @@
 #include "Common/GameEngine.h"
 #include "Common/GameSounds.h"
 #include "Common/Debug.h"
-#include "Common/MiniDump.h"
 #include "Common/GameMemory.h"
 #include "Common/StackDump.h"
 #include "Common/MessageStream.h"
+#include "Common/MiniDump.h"
 #include "Common/Registry.h"
 #include "Common/Team.h"
 #include "GameClient/ClientInstance.h"
@@ -75,6 +75,7 @@ HINSTANCE ApplicationHInstance = NULL;  ///< our application instance
 HWND ApplicationHWnd = NULL;  ///< our application window handle
 Win32Mouse *TheWin32Mouse= NULL;  ///< for the WndProc() only
 DWORD TheMessageTime = 0;	///< For getting the time that a message was posted from Windows.
+static MiniDumper TheMiniDumper = {};
 
 const Char *g_strFile = "data\\Generals.str";
 const Char *g_csfFile = "data\\%s\\Generals.csf";
@@ -764,7 +765,12 @@ static CriticalSection critSec1, critSec2, critSec3, critSec4, critSec5;
 static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info )
 {
 	DumpExceptionInfo( e_info->ExceptionRecord->ExceptionCode, e_info );
-	CreateMiniDump(e_info);
+	if (TheMiniDumper.IsInitialized())
+	{
+		//TheMiniDumper.TriggerMiniDumpForException(e_info);
+		TheMiniDumper.TriggerMiniDumpForException(e_info, true);
+		TheMiniDumper.ShutDown();
+	}
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
@@ -856,6 +862,9 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 		CommandLine::parseCommandLineForStartup();
 
+		// Initialize minidump facilities - require TheGlobalData so after parseCommandLineForStartup
+		TheMiniDumper.Initialize(TheGlobalData->getPath_UserData());
+
 		// register windows class and create application window
 		if(!TheGlobalData->m_headless && initializeAppWindows(hInstance, nCmdShow, TheGlobalData->m_windowed) == false)
 			return exitcode;
@@ -915,7 +924,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	#endif
 
 		shutdownMemoryManager();
-
+		
 		// BGC - shut down COM
 	//	OleUninitialize();
 	}
@@ -923,6 +932,9 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	{
 
 	}
+
+	// TODO: Is this the right place for this?
+	TheMiniDumper.ShutDown();
 
 	TheUnicodeStringCriticalSection = NULL;
 	TheDmaCriticalSection = NULL;

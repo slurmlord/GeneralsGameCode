@@ -461,6 +461,7 @@ public:
 #endif
 
 };
+
 // ----------------------------------------------------------------------------
 class MemoryPoolBlob
 {
@@ -501,7 +502,9 @@ public:
 #ifdef MEMORYPOOL_CHECKPOINTING
 	void debugResetCheckpoints();
 #endif
-
+#ifdef MINIDUMP_ENABLED
+	void fillAllocatedRange(MemoryPoolAllocatedRange& range);
+#endif
 };
 
 // ----------------------------------------------------------------------------
@@ -640,7 +643,7 @@ inline const char *MemoryPoolSingleBlock::debugGetLiteralTagString()
 }
 #endif
 
-#ifdef MEMORYPOOL_DEBUG
+#if defined(MEMORYPOOL_DEBUG) || defined(MINIDUMP_ENABLED)
 /**
 	accessor
 */
@@ -1381,6 +1384,15 @@ void MemoryPoolBlob::debugResetCheckpoints()
 	}
 }
 #endif
+
+#ifdef MINIDUMP_ENABLED
+void MemoryPoolBlob::fillAllocatedRange(MemoryPoolAllocatedRange& range)
+{
+	range.allocationAddr = m_blockData;
+	range.allocationSize = m_totalBlocksInBlob * MemoryPoolSingleBlock::calcRawBlockSize(m_owningPool->getAllocationSize());
+}
+#endif // MINIDUMP_ENABLED
+
 
 //-----------------------------------------------------------------------------
 // METHODS for Checkpointable
@@ -2573,6 +2585,30 @@ void DynamicMemoryAllocator::debugDmaInfoReport( FILE *fp )
 }
 #endif
 
+#ifdef MINIDUMP_ENABLED
+Int DynamicMemoryAllocator::getRawBlockCount()
+{
+	Int count = 0;
+	for (MemoryPoolSingleBlock* block = m_rawBlocks; block; block = block->getNextRawBlock())
+	{
+		++count;
+	}
+
+	return count;
+}
+void DynamicMemoryAllocator::getAllocationRangeForRawBlockN(Int n, MemoryPoolAllocatedRange& allocationRange)
+{
+
+	MemoryPoolSingleBlock* block = m_rawBlocks;
+	for (int i = 0; i < n; ++i)
+	{
+		block = block->getNextRawBlock();
+	}
+	allocationRange.allocationAddr = reinterpret_cast<char*>(block);
+	allocationRange.allocationSize = block->calcRawBlockSize(block->debugGetLogicalSize());
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // METHODS for MemoryPoolFactory
 //-----------------------------------------------------------------------------
@@ -3230,6 +3266,33 @@ void MemoryPoolFactory::debugMemoryReport(Int flags, Int startCheckpoint, Int en
 	DebugSetFlags(oldFlags);
 #endif
 }
+#endif
+
+#ifdef MINIDUMP_ENABLED
+void AllocationRangeIterator::UpdateRange()
+{
+	m_currentBlobInPool->fillAllocatedRange(m_range);
+}
+
+void AllocationRangeIterator::MoveToNextBlob()
+{
+	// Advances to the next blob, advancing to the next MemoryPool if needed.
+	m_currentBlobInPool = m_currentBlobInPool->getNextInList();
+	if (m_currentBlobInPool != NULL)
+	{
+		return;
+	}
+	do
+	{
+		m_currentPool = m_currentPool->getNextPoolInList();
+	} while (m_currentPool != NULL && m_currentPool->m_firstBlob != NULL);
+
+	if (m_currentPool != NULL)
+	{
+		m_currentBlobInPool = m_currentPool->m_firstBlob;
+	}
+}
+
 #endif
 
 //-----------------------------------------------------------------------------
