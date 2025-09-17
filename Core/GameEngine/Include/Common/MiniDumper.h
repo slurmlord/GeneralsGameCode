@@ -5,6 +5,7 @@
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 // Backported defines that are in minidumpapiset.h which is unavailable for VC6
+#pragma pack(push, 4)
 
 typedef enum _MINIDUMP_CALLBACK_TYPE {
 	ModuleCallback,
@@ -33,9 +34,6 @@ typedef enum _MINIDUMP_CALLBACK_TYPE {
 typedef struct _MINIDUMP_THREAD_CALLBACK {
 	ULONG ThreadId;
 	HANDLE ThreadHandle;
-#if defined(_ARM64_)
-	ULONG Pad;
-#endif
 	CONTEXT Context;
 	ULONG SizeOfContext;
 	ULONG64 StackBase;
@@ -45,9 +43,6 @@ typedef struct _MINIDUMP_THREAD_CALLBACK {
 typedef struct _MINIDUMP_THREAD_EX_CALLBACK {
 	ULONG ThreadId;
 	HANDLE ThreadHandle;
-#if defined(_ARM64_)
-	ULONG Pad;
-#endif
 	CONTEXT Context;
 	ULONG SizeOfContext;
 	ULONG64 StackBase;
@@ -248,6 +243,7 @@ typedef enum _MODULE_WRITE_FLAGS {
 	ModuleWriteCodeSegs = 0x0040,
 } MODULE_WRITE_FLAGS;
 
+#pragma pack(pop)
 #endif
 
 class MiniDumper
@@ -268,9 +264,10 @@ public:
 		m_dumpObjectsSubState = 0;
 		m_dmaRawBlockIndex = 0;
 		memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpDir));
-		memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpFile));
-		memset(m_dumpDir, 0, ARRAY_SIZE(m_sysDbgHelpPath));
+		memset(m_dumpFile, 0, ARRAY_SIZE(m_dumpFile));
+		memset(m_sysDbgHelpPath, 0, ARRAY_SIZE(m_sysDbgHelpPath));
 	};
+
 	void Initialize(const AsciiString& userDirPath);
 	Bool IsInitialized() const;
 	void TriggerMiniDump(Bool extendedInfo = false);
@@ -278,31 +275,35 @@ public:
 	void ShutDown();
 	static LONG WINAPI DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info);
 private:
-	static DWORD WINAPI MiniDumpThreadProc(LPVOID lpParam);
-	static BOOL CALLBACK MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput);
-
-	DWORD ThreadProcInternal();
-	BOOL CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP_CALLBACK_OUTPUT& output);
 	void CreateMiniDump(Bool extendedInfo);
 	BOOL DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
-	Bool InitializeDumpDirectory(const AsciiString& userDirPath);
 	void CleanupResources();
 
+	// Callbacks from dbghelp
+	static BOOL CALLBACK MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput);
+	BOOL CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP_CALLBACK_OUTPUT& output);
+
+	// Thread procs
+	static DWORD WINAPI MiniDumpThreadProc(LPVOID lpParam);
+	DWORD ThreadProcInternal();
+
+	// Dump file directory bookkeeping
+	Bool InitializeDumpDirectory(const AsciiString& userDirPath);
+	static void KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount);
+
+	// Struct to hold file information
+	struct FileInfo {
+		std::string name;
+		FILETIME lastWriteTime;
+	};
+
+	static bool CompareByLastWriteTime(const FileInfo& a, const FileInfo& b);
+
 private:
-	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
-		HANDLE hProcess,
-		DWORD ProcessId,
-		HANDLE hFile,
-		MINIDUMP_TYPE DumpType,
-		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-		PMINIDUMP_CALLBACK_INFORMATION CallbackParam
-		);
-
-	MiniDumpWriteDump_t m_pMiniDumpWriteDump;
-
 	Bool m_miniDumpInitialized;
 	Bool m_extendedInfoRequested;
+
+	// Path buffers
 	Char m_dumpDir[MAX_PATH];
 	Char m_dumpFile[MAX_PATH];
 	Char m_sysDbgHelpPath[MAX_PATH];
@@ -319,11 +320,25 @@ private:
 	HANDLE m_dumpThread;
 	DWORD m_dumpThreadId;
 
+	// Internal memory dumping progress state
 	int m_dumpObjectsState;
 	int m_dumpObjectsSubState;
 	int m_dmaRawBlockIndex;
 
 	AllocationRangeIterator m_RangeIter;
 	AllocationRangeIterator m_endRangeIter;
+
+	// Function pointer to MiniDumpWriteDump in dbghelp.dll
+	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
+		HANDLE hProcess,
+		DWORD ProcessId,
+		HANDLE hFile,
+		MINIDUMP_TYPE DumpType,
+		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+		PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+		);
+
+	MiniDumpWriteDump_t m_pMiniDumpWriteDump;
 };
 #endif

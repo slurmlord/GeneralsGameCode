@@ -5,22 +5,22 @@
 #include "Common/GameMemory.h"
 #include "gitinfo.h"
 
+// Globals for storing the pointer to the exception
 _EXCEPTION_POINTERS* g_dumpException = NULL;
 DWORD g_dumpExceptionThreadId = 0;
 
+// Globals containing state about the current exception that's used for context in the mini dump.
+// These are populated by MiniDumper::DumpingExceptionFilter to store a copy of the exception in case it goes out of scope
 _EXCEPTION_POINTERS g_exceptionPointers = { 0 };
 EXCEPTION_RECORD g_exceptionRecord = { 0 };
 CONTEXT g_exceptionContext = { 0 };
-
 
 // Forward declarations
 static void KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount);
 
 LONG WINAPI MiniDumper::DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info)
 {
-	// Store the exception info in the global variable for later use by the dumping thread
-	DEBUG_LOG(("Storing exception pointer '%p' into global '%p'. The exceptionRecord pointer is %p", e_info, g_dumpException, e_info->ExceptionRecord));
-	//g_dumpException = e_info;
+	// Store the exception info in the global variables for later use by the dumping thread
 	g_exceptionRecord = *(e_info->ExceptionRecord);
 	g_exceptionContext = *(e_info->ContextRecord);
 	g_exceptionPointers.ContextRecord = &g_exceptionContext;
@@ -40,33 +40,13 @@ void MiniDumper::TriggerMiniDump(Bool extendedInfo)
 
 	__try
 	{
-		*(int*)0 = 1;
-		//DebugBreak();
+		// Use DebugBreak to raise an exception that can be caught in the __except block
+		DebugBreak();
 	}
 	__except (DumpingExceptionFilter(GetExceptionInformation()))
 	{
 		TriggerMiniDumpForException(g_dumpException, extendedInfo);
-	}/*
-	g_dumpException = NULL;
-	g_dumpExceptionThreadId = 0;
-	m_extendedInfoRequested = extendedInfo;
-	DEBUG_LOG(("MiniDumper::TriggerMiniDump: Triggering minidump for non-exception."));
-
-	SetEvent(m_dumpRequested);
-	DWORD wait = WaitForSingleObject(m_dumpComplete, INFINITE);
-	if (wait != WAIT_OBJECT_0)
-	{
-		if (wait == WAIT_FAILED)
-		{
-			DEBUG_LOG(("MiniDumper::TriggerMiniDump: Waiting for minidump triggering failed, status=%u, error=%u", wait, GetLastError()));
-		}
-		else
-		{
-			DEBUG_LOG(("MiniDumper::TriggerMiniDump: Waiting for minidump triggering failed, status=%u", wait));
-		}
 	}
-	ResetEvent(m_dumpComplete);*/
-	DEBUG_LOG(("MiniDumper::TriggerMiniDump: Triggering minidump for exception completed"));
 }
 
 void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, Bool extendedInfo)
@@ -80,7 +60,6 @@ void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info,
 	g_dumpException = e_info;
 	g_dumpExceptionThreadId = GetCurrentThreadId();
 	m_extendedInfoRequested = extendedInfo;
-	DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Triggering minidump for exception."));
 
 	SetEvent(m_dumpRequested);
 	DWORD wait = WaitForSingleObject(m_dumpComplete, INFINITE);
@@ -95,8 +74,8 @@ void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info,
 			DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Waiting for minidump triggering failed, status=%u", wait));
 		}
 	}
+
 	ResetEvent(m_dumpComplete);
-	DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Triggering minidump for exception completed"));
 }
 
 void MiniDumper::Initialize(const AsciiString& userDirPath)
@@ -130,7 +109,7 @@ void MiniDumper::Initialize(const AsciiString& userDirPath)
 			m_dbgHlp = NULL;
 		}
 
-		DEBUG_LOG(("MiniDumper::Initialize: Could not get address of proc MiniDumpWriteDump!"));
+		DEBUG_LOG(("MiniDumper::Initialize: Could not get address of proc MiniDumpWriteDump from '%s'!", m_sysDbgHelpPath));
 		return;
 	}
 
@@ -178,8 +157,8 @@ Bool MiniDumper::IsInitialized() const
 
 Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 {
-	CONSTEXPR Int MaxExtendedFileCount = 2;
-	CONSTEXPR Int MaxMiniFileCount = 10;
+	constexpr Int MaxExtendedFileCount = 2;
+	constexpr Int MaxMiniFileCount = 10;
 
 	strlcpy(m_dumpDir, userDirPath.str(), ARRAY_SIZE(m_dumpDir));
 	strlcat(m_dumpDir, "CrashDumps\\", ARRAY_SIZE(m_dumpDir));
@@ -325,32 +304,18 @@ void MiniDumper::CreateMiniDump(Bool extendedInfo)
 	Char dumpTypeSpecifier = extendedInfo ? 'X' : 'M';
 	DWORD currentProcessId = GetCurrentProcessId();
 	DWORD currentThreadId = GetCurrentThreadId();
-	DEBUG_LOG(("MiniDumper::CreateMiniDump: About to create file name"));
 
 	// m_dumpDir is stored with trailing backslash in Initialize
 	snprintf(m_dumpFile, ARRAY_SIZE(m_dumpFile), "%sCrash%c%c-%04d%02d%02d-%02d%02d%02d-%s-%ld-%ld.dmp",
 		m_dumpDir, dumpTypeSpecifier, product, sysTime.wYear, sysTime.wMonth,
 		sysTime.wDay, sysTime.wHour, sysTime.wMinute, sysTime.wSecond,
 		GitShortSHA1, currentProcessId, currentThreadId);
-	DEBUG_LOG(("MiniDumper::CreateMiniDump: Created file name: '%s'", m_dumpFile));
+
 	HANDLE dumpFile = CreateFile(m_dumpFile, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (dumpFile == NULL || dumpFile == INVALID_HANDLE_VALUE)
 	{
 		DEBUG_LOG(("MiniDumper::CreateMiniDump: Unable to create dump file '%s', error=%u", m_dumpFile, GetLastError()));
 		return;
-	}
-
-	if (g_dumpException != NULL)
-	{
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: 1 Exception stuff g_dumpException=%p g_dumpException->ExceptionRecord=%p",
-			g_dumpException,
-			g_dumpException->ExceptionRecord));
-
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: 2 Exception stuff is ExA=%p, ExC=%u, ExF=%u, NumP=%u",
-			g_dumpException->ExceptionRecord->ExceptionAddress,
-			g_dumpException->ExceptionRecord->ExceptionCode,
-			g_dumpException->ExceptionRecord->ExceptionFlags,
-			g_dumpException->ExceptionRecord->NumberParameters));
 	}
 
 	PMINIDUMP_EXCEPTION_INFORMATION exceptionInfoPtr = NULL;
@@ -361,7 +326,6 @@ void MiniDumper::CreateMiniDump(Bool extendedInfo)
 		exceptionInfo.ThreadId = g_dumpExceptionThreadId;
 		exceptionInfo.ClientPointers = FALSE;
 		exceptionInfoPtr = &exceptionInfo;
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: Created ExceptionInfo, p=%p, ep=%p, ti=%u ", exceptionInfoPtr, exceptionInfoPtr->ExceptionPointers, exceptionInfoPtr->ThreadId));
 	}
 
 	PMINIDUMP_CALLBACK_INFORMATION callbackInfoPtr = NULL;
@@ -371,7 +335,6 @@ void MiniDumper::CreateMiniDump(Bool extendedInfo)
 		callBackInfo.CallbackRoutine = MiniDumpCallback;
 		callBackInfo.CallbackParam = this;
 		callbackInfoPtr = &callBackInfo;
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: Created CallbackInfo, p=%p, cr=%p, cp=%p ", callbackInfoPtr, callbackInfoPtr->CallbackRoutine, callbackInfoPtr->CallbackParam));
 	}
 
 	MINIDUMP_TYPE dumpType = static_cast<MINIDUMP_TYPE>(MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory);
@@ -379,19 +342,6 @@ void MiniDumper::CreateMiniDump(Bool extendedInfo)
 	{
 		dumpType = static_cast<MINIDUMP_TYPE>(MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithFullMemoryInfo);
 	}
-
-	if (exceptionInfoPtr != NULL)
-	{
-		// DEBUG!!
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: Re-visiting created ExceptionInfo, p=%p, ep=%p, ti=%u ", exceptionInfoPtr, exceptionInfoPtr->ExceptionPointers, exceptionInfoPtr->ThreadId));
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: ExA=%p, ExC=%u, ExF=%u, NumP=%u",
-			exceptionInfoPtr->ExceptionPointers->ExceptionRecord->ExceptionAddress,
-			exceptionInfoPtr->ExceptionPointers->ExceptionRecord->ExceptionCode,
-			exceptionInfoPtr->ExceptionPointers->ExceptionRecord->ExceptionFlags,
-			exceptionInfoPtr->ExceptionPointers->ExceptionRecord->NumberParameters));
-	}
-
-	DEBUG_LOG(("MiniDumper::CreateMiniDump: Created DumpType, about to call the function at %p", m_pMiniDumpWriteDump));
 
 	BOOL success = m_pMiniDumpWriteDump(
 		GetCurrentProcess(),
@@ -411,12 +361,6 @@ void MiniDumper::CreateMiniDump(Bool extendedInfo)
 		DEBUG_LOG(("MiniDumper::CreateMiniDump: Successfully wrote minidump file to '%s'", m_dumpFile));
 	}
 
-	if (exceptionInfoPtr != NULL)
-	{
-		// DEBUG!!
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: Re-visiting2 created ExceptionInfo, p=%p, ep=%p, ti=%u ", exceptionInfoPtr, exceptionInfoPtr->ExceptionPointers, exceptionInfoPtr->ThreadId));
-	}
-
 	CloseHandle(dumpFile);
 }
 
@@ -427,7 +371,7 @@ BOOL CALLBACK MiniDumper::MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBA
 		DEBUG_LOG(("MiniDumper::MiniDumpCallback: Required parameters were null; CallbackParam=%p, CallbackInput=%p, CallbackOutput=%p.", CallbackParam, CallbackInput, CallbackOutput));
 		return false;
 	}
-	DEBUG_LOG(("MiniDumper::MiniDumpCallback: Received callback! CallbackParam=%p, CallbackInput=%p, CallbackOutput=%p.", CallbackParam, CallbackInput, CallbackOutput));
+
 	MiniDumper* dumper = static_cast<MiniDumper*>(CallbackParam);
 	return dumper->CallbackInternal(*CallbackInput, *CallbackOutput);
 }
@@ -436,7 +380,6 @@ BOOL CALLBACK MiniDumper::MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBA
 BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP_CALLBACK_OUTPUT& output)
 {
 	BOOL retVal = TRUE;
-	DEBUG_LOG(("MiniDumper::CallbackInternal: Received callback of type %lu.", input.CallbackType));
 	switch (input.CallbackType)
 	{
 	case IncludeModuleCallback:
@@ -445,7 +388,6 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 	case ModuleCallback:
 	{
 		// Only include data segments for the game and ntdll modules to keep dump size low
-		/*
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
 		{
 			if (!StrStrIW(input.Module.FullPath, L"generalszh.exe") && !StrStrIW(input.Module.FullPath, L"generalsv.exe") && !StrStrIW(input.Module.FullPath, L"ntdll.dll"))
@@ -453,27 +395,8 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 				// Exclude data segments for the module
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
 			}
-			else
-			{
-				DEBUG_LOG(("MiniDumper::CallbackInternal: Including module with data SEGS!"));
-			}
-		}*/
-		//DebugBreak();
-		char fakk[MAX_PATH] = { 0 };
-		DEBUG_LOG(("MiniDumper::CallbackInternal: Got a module callback; Base=%llu, FullPath=%p", input.Module.BaseOfImage, input.Module.FullPath));
-		size_t ll = wcstombs(fakk, input.Module.FullPath, MAX_PATH);
-		DEBUG_LOG(("MiniDumper::CallbackInternal: Module Name length=%u, name=%s", ll, fakk));
-		if (StrStrIW(input.Module.FullPath, L"generalszh.exe") || StrStrIW(input.Module.FullPath, L"generalsv.exe") || StrStrIW(input.Module.FullPath, L"ntdll.dll"))
-		{
-			// Exclude data segments for the module
-			output.ModuleWriteFlags |= ModuleWriteDataSeg;
-			DEBUG_LOG(("MiniDumper::CallbackInternal: INCLUDING module '%s' with data segs!", fakk));
 		}
-		else
-		{
-			DEBUG_LOG(("MiniDumper::CallbackInternal: Excluding module '%s' from data segs!", fakk));
-			output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
-		}
+
 		retVal = TRUE;
 		break;
 	}
@@ -496,7 +419,6 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		{
 			retVal = DumpMemoryObjects(output.MemoryBase, output.MemorySize);
 		} while ((output.MemoryBase == NULL || output.MemorySize == NULL) && retVal == TRUE);
-		DEBUG_LOG(("MiniDumper::CallbackInternal: Returned from DumpMemoryObjects, base=%llu, size=%lu", output.MemoryBase, output.MemorySize));
 		break;
 	}
 	case ReadMemoryFailureCallback:
@@ -644,18 +566,12 @@ BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 	return moreToDo;
 }
 
-// Struct to hold file information
-struct FileInfo {
-	std::string name;
-	FILETIME lastWriteTime;
-};
-
 // Comparator for sorting files by last modified time (newest first)
-static bool CompareByLastWriteTime(const FileInfo& a, const FileInfo& b) {
+bool MiniDumper::CompareByLastWriteTime(const FileInfo& a, const FileInfo& b) {
 	return CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
 }
 
-static void KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount)
+void MiniDumper::KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount)
 {
 	// directory already contains trailing backslash
 	std::string searchPath = directory + fileWildcard;
@@ -665,7 +581,7 @@ static void KeepNewestFiles(const std::string& directory, const std::string& fil
 	if (hFind == INVALID_HANDLE_VALUE) {
 		if (GetLastError() != ERROR_FILE_NOT_FOUND)
 		{
-			DEBUG_LOG(("KeepNewestFiles: Unable to find files in directory '%s': %u", searchPath.c_str(), GetLastError()));
+			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Unable to find files in directory '%s': %u", searchPath.c_str(), GetLastError()));
 		}
 
 		return;
@@ -693,10 +609,10 @@ static void KeepNewestFiles(const std::string& directory, const std::string& fil
 	// Delete files beyond the newest keepCount
 	for (size_t i = keepCount; i < files.size(); ++i) {
 		if (DeleteFile(files[i].name.c_str())) {
-			DEBUG_LOG(("KeepNewestFiles: Deleted old dump file '%s'.", files[i].name.c_str()));
+			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Deleted old dump file '%s'.", files[i].name.c_str()));
 		}
 		else {
-			DEBUG_LOG(("KeepNewestFiles: Failed to delete file '%s', error=%u", files[i].name.c_str(), GetLastError()));
+			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Failed to delete file '%s', error=%u", files[i].name.c_str(), GetLastError()));
 		}
 	}
 }

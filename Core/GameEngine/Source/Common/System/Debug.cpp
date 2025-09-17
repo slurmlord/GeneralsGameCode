@@ -737,21 +737,11 @@ void ReleaseCrash(const char *reason)
 #ifdef RTS_ENABLE_CRASHDUMP
 	if (TheMiniDumper.IsInitialized())
 	{
-		__try {
-			throw;
-		}
-		__except (MiniDumper::DumpingExceptionFilter(GetExceptionInformation()))
-		{
-			TheMiniDumper.TriggerMiniDumpForException(g_dumpException);
-		}
-	}
-	/*
-	if (TheMiniDumper.IsInitialized())
-	{
+		// Do dumps both with and without extended info
 		TheMiniDumper.TriggerMiniDump(false);
-		//TheMiniDumper.TriggerMiniDump(true);
+		TheMiniDumper.TriggerMiniDump(true);
 		TheMiniDumper.ShutDown();
-	}*/
+	}
 #endif
 
 	char prevbuf[ _MAX_PATH ];
@@ -822,8 +812,9 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 #ifdef RTS_ENABLE_CRASHDUMP
 	if (TheMiniDumper.IsInitialized())
 	{
+		// Do dumps both with and without extended info
 		TheMiniDumper.TriggerMiniDump(false);
-		//TheMiniDumper.TriggerMiniDump(true);
+		TheMiniDumper.TriggerMiniDump(true);
 		TheMiniDumper.ShutDown();
 	}
 #endif

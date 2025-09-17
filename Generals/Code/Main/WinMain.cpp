@@ -75,7 +75,6 @@ HWND ApplicationHWnd = NULL;  ///< our application window handle
 Win32Mouse *TheWin32Mouse= NULL;  ///< for the WndProc() only
 DWORD TheMessageTime = 0;	///< For getting the time that a message was posted from Windows.
 #ifdef RTS_ENABLE_CRASHDUMP
-//MiniDumper TheMiniDumper = MiniDumper();
 extern MiniDumper TheMiniDumper;
 #endif
 
@@ -759,7 +758,7 @@ static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info 
 #ifdef RTS_ENABLE_CRASHDUMP
 	if (TheMiniDumper.IsInitialized())
 	{
-		//TheMiniDumper.TriggerMiniDumpForException(e_info);
+		// Do dumps both with and without extended info
 		TheMiniDumper.TriggerMiniDumpForException(e_info, false);
 		TheMiniDumper.TriggerMiniDumpForException(e_info, true);
 		TheMiniDumper.ShutDown();
