@@ -635,14 +635,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 	}
 	catch (...)
 	{
-#ifdef RTS_ENABLE_CRASHDUMP
-		if (TheMiniDumper.IsInitialized())
-		{
-			TheMiniDumper.TriggerMiniDump(false);
-			TheMiniDumper.TriggerMiniDump(true);
-			TheMiniDumper.ShutDown();
-		}
-#endif
 		RELEASE_CRASH(("Uncaught exception in Main::WndProc... probably should not happen"));
 		// no rethrow
 	}
@@ -833,7 +825,6 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #ifdef RTS_ENABLE_CRASHDUMP
 		// Initialize minidump facilities - requires TheGlobalData so performed after parseCommandLineForStartup
 		TheMiniDumper.Initialize(TheGlobalData->getPath_UserData());
-		DEBUG_LOG(("Done initializing the minidumper : %u", TheMiniDumper.IsInitialized()));
 #endif
 		// register windows class and create application window
 		if(!TheGlobalData->m_headless && initializeAppWindows(hInstance, nCmdShow, TheGlobalData->m_windowed) == false)

@@ -507,8 +507,6 @@ enum { MAX_SPECIAL_USED = 256 };
 
 #ifdef RTS_ENABLE_CRASHDUMP
 class AllocationRangeIterator {
-	//typedef std::input_iterator_tag iterator_category;
-	//typedef std::int32_t difference_type;
 	typedef const MemoryPoolAllocatedRange value_type;
 	typedef const MemoryPoolAllocatedRange* pointer;
 	typedef const MemoryPoolAllocatedRange& reference;

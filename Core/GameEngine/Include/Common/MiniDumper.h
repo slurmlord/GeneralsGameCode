@@ -3,8 +3,8 @@
 #ifdef RTS_ENABLE_CRASHDUMP
 #include <imagehlp.h>
 
+#pragma region Backported defines from minidumpapiset.h for VC6
 #if defined(_MSC_VER) && _MSC_VER < 1300
-// Backported defines that are in minidumpapiset.h which is unavailable for VC6
 #pragma pack(push, 4)
 
 typedef enum _MINIDUMP_CALLBACK_TYPE {
@@ -245,6 +245,7 @@ typedef enum _MODULE_WRITE_FLAGS {
 
 #pragma pack(pop)
 #endif
+#pragma endregion
 
 class MiniDumper
 {

@@ -82,6 +82,7 @@ extern HWND ApplicationHWnd;
 
 extern const char *gAppPrefix; /// So WB can have a different log file name.
 
+
 // ----------------------------------------------------------------------------
 // DEFINES
 // ----------------------------------------------------------------------------
@@ -723,7 +724,6 @@ double SimpleProfiler::getAverageTime()
 		}
 	}
 
-	extern _EXCEPTION_POINTERS* g_dumpException;
 void ReleaseCrash(const char *reason)
 {
 	/// do additional reporting on the crash, if possible

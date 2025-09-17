@@ -932,7 +932,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	#endif
 
 		shutdownMemoryManager();
-		
+
 		// BGC - shut down COM
 	//	OleUninitialize();
 	}

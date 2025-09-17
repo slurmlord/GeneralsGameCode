@@ -249,7 +249,7 @@ DWORD MiniDumper::ThreadProcInternal()
 	while (true)
 	{
 		HANDLE waitEvents[2] = { m_dumpRequested, m_quitting };
-		DWORD event = WaitForMultipleObjects(2, waitEvents, FALSE, INFINITE);
+		DWORD event = WaitForMultipleObjects(ARRAY_SIZE(waitEvents), waitEvents, FALSE, INFINITE);
 		if (event == WAIT_OBJECT_0 + 0)
 		{
 			// A dump is requested (m_dumpRequested)
@@ -402,7 +402,7 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 	}
 	case IncludeThreadCallback:
 		// We want all threads except the dumping thread
-		if (input.Thread.ThreadId == m_dumpThreadId)
+		if (input.IncludeThread.ThreadId == m_dumpThreadId)
 		{
 			retVal = FALSE;
 		}
@@ -417,6 +417,7 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 	{
 		do
 		{
+			// DumpMemoryObjects will return false once it's completed, signalling the end of memory callbacks
 			retVal = DumpMemoryObjects(output.MemoryBase, output.MemorySize);
 		} while ((output.MemoryBase == NULL || output.MemorySize == NULL) && retVal == TRUE);
 		break;

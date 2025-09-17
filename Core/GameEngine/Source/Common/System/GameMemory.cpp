@@ -465,7 +465,6 @@ public:
 #endif
 
 };
-
 // ----------------------------------------------------------------------------
 class MemoryPoolBlob
 {
@@ -509,6 +508,7 @@ public:
 #ifdef RTS_ENABLE_CRASHDUMP
 	void fillAllocatedRange(MemoryPoolAllocatedRange& range);
 #endif
+
 };
 
 // ----------------------------------------------------------------------------
@@ -1397,8 +1397,7 @@ void MemoryPoolBlob::fillAllocatedRange(MemoryPoolAllocatedRange& range)
 	range.allocationAddr = m_blockData;
 	range.allocationSize = m_totalBlocksInBlob * MemoryPoolSingleBlock::calcRawBlockSize(m_owningPool->getAllocationSize());
 }
-#endif // RTS_ENABLE_CRASHDUMP
-
+#endif
 
 //-----------------------------------------------------------------------------
 // METHODS for Checkpointable
