@@ -217,9 +217,6 @@
 	#define newInstance(ARGCLASS)												new(ARGCLASS::ARGCLASS##_GLUE_NOT_IMPLEMENTED) ARGCLASS
 
 #endif
-#ifdef RTS_ENABLE_CRASHDUMP
-#include <iterator>
-#endif
 
 // FORWARD REFERENCES /////////////////////////////////////////////////////////
 
