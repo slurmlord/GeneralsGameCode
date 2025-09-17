@@ -299,8 +299,7 @@ WaterRenderObjClass::~WaterRenderObjClass(void)
 		SAFE_RELEASE( m_pBumpTexture2[i]);
 	}
 
-	if (m_meshData)
-		delete [] m_meshData;
+	delete [] m_meshData;
 	m_meshData = NULL;
 	m_meshDataSize = 0;
 
@@ -313,8 +312,7 @@ WaterRenderObjClass::~WaterRenderObjClass(void)
 	TheWaterTransparency = NULL;
 	ReleaseResources();
 
-	if (m_waterTrackSystem)
-		delete m_waterTrackSystem;
+	delete m_waterTrackSystem;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -527,7 +525,7 @@ HRESULT WaterRenderObjClass::initBumpMap(LPDIRECT3DTEXTURE8 *pTex, TextureClass 
 		pTex[0]->UnlockRect(level);
 		surf->Unlock();
 		REF_PTR_RELEASE (surf);
-	}//for each level
+	}
 
 #else
 	surf=pBumpSource->Get_Surface_Level();
@@ -1164,14 +1162,14 @@ void WaterRenderObjClass::reset( void )
 				// on to the next one
 				pData++;
 
-			}  // end for i
+			}
 
-		}  // end for j
+		}
 
 		// mesh data is no longer in motion
 		m_meshInMotion = FALSE;
 
-	}  // end if, water type 3
+	}
 
 	if (m_waterTrackSystem)
 		m_waterTrackSystem->reset();
@@ -1285,32 +1283,32 @@ void WaterRenderObjClass::update( void )
 							pData->height = pData->preferredHeight;
 							pData->velocity = 0.0f;
 
-						}  // end if
+						}
 						else
 						{
 
 							// there is still motion in the mesh, we need to process next frame
 							m_meshInMotion = TRUE;
 
-						}  // end else
+						}
 
-					}  // end if
+					}
 
 					// on to the next one
 					pData++;
 
-				}  // end for i
+				}
 
-			}  // end for j
+			}
 
-		}  // end if
+		}
 
 		// mark the last logic frame we processed on
 		lastLogicFrame = currLogicFrame;
 
-	}  // end if, a logic frame has passed
+	}
 
-}  // end update
+}
 
 
 //-------------------------------------------------------------------------------------------------
@@ -1710,12 +1708,12 @@ void WaterRenderObjClass::Render(RenderInfoClass & rinfo)
 				ShaderClass::Invalidate();	//reset shading system so it forces full state set.
 
 				renderWater();
-			}	//WATER_TYPE_1
+			}
 			break;
 
 		default:
 			break;
-	}//switch
+	}
 
 	if (TheGlobalData && TheGlobalData->m_drawSkyBox)
 	{	//center skybox around camera
@@ -2529,7 +2527,7 @@ void WaterRenderObjClass::addVelocity( Real worldX, Real worldY,
 
 		}
 
-	}  // end if, water type is 3
+	}
 
 }
 
@@ -2691,11 +2689,11 @@ Real WaterRenderObjClass::getWaterHeight(Real x, Real y)
 				waterZ = pTrig->getPoint( 0 )->z;
 				waterHandle = pTrig->getWaterHandle();
 
-			}  // end if
+			}
 
-		}  // end if
+		}
 
-	}  // end for
+	}
 
 	if (waterHandle)
 		return waterHandle->m_polygon->getPoint( 0 )->z;
@@ -3431,7 +3429,7 @@ void WaterRenderObjClass::renderSkyBody(Matrix3D *mat)
 void WaterRenderObjClass::crc( Xfer *xfer )
 {
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer
@@ -3455,7 +3453,7 @@ void WaterRenderObjClass::xfer( Xfer *xfer )
 		DEBUG_CRASH(( "WaterRenderObjClass::xfer - cells X mismatch" ));
 		throw SC_INVALID_DATA;
 
-	}  // end if
+	}
 
 	// grid cells Y
 	Int cellsY = m_gridCellsY;
@@ -3466,7 +3464,7 @@ void WaterRenderObjClass::xfer( Xfer *xfer )
 		DEBUG_CRASH(( "WaterRenderObjClass::xfer - cells Y mismatch" ));
 		throw SC_INVALID_DATA;
 
-	}  // end if
+	}
 
 	// xfer each of the mesh data points
 	for( UnsignedInt i = 0; i < m_meshDataSize; ++i )
@@ -3484,9 +3482,9 @@ void WaterRenderObjClass::xfer( Xfer *xfer )
 		// preferred height
 		xfer->xferUnsignedByte( &m_meshData[ i ].preferredHeight );
 
-	}  // end for, i
+	}
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -3494,6 +3492,6 @@ void WaterRenderObjClass::xfer( Xfer *xfer )
 void WaterRenderObjClass::loadPostProcess( void )
 {
 
-}  // end loadPostProcess
+}
 
 

@@ -101,7 +101,7 @@ struct SFWRec
 {
 	SFWRec *info = (SFWRec *)userData;
 	return info->translator->selectFriends(draw, info->createTeamMsg, info->dragSelecting) != 0;
-}  // end selectFriendsWrapper
+}
 
 /*friend*/ Bool killThemKillThemAllWrapper( Drawable *draw, void *userData )
 {
@@ -202,7 +202,7 @@ Bool CanSelectDrawable( const Drawable *draw, Bool dragSelecting )
 	//Now we can select anything that is selectable.
 	return TRUE;
 
-}  // end canSelect
+}
 
 //-----------------------------------------------------------------------------
 static Bool canSelectWrapper( Drawable *draw, void *userData )
@@ -312,11 +312,11 @@ Bool SelectionTranslator::selectFriends( Drawable *draw, GameMessage *createTeam
 
 		return true;  // selected
 
-	}  // end if
+	}
 
 	return false;  // not selected
 
-}  // end selectFriends
+}
 
 
 //-----------------------------------------------------------------------------
@@ -350,7 +350,7 @@ Bool SelectionTranslator::killThemKillThemAll( Drawable *draw, GameMessage *kill
 		}
 	}
 	return false;
-}  // end selectFriends
+}
 
 //-----------------------------------------------------------------------------
 /**
@@ -917,16 +917,8 @@ GameMessageDisposition SelectionTranslator::translateGameMessage(const GameMessa
 			ICoord2D pixel = msg->getArgument( 0 )->pixel;
 			UnsignedInt currentTime = (UnsignedInt) msg->getArgument( 2 )->integer;
 
-			Bool isClick = TheMouse->isClick(&m_deselectFeedbackAnchor, &pixel, m_lastClick, currentTime);
-
-			if (isClick &&
-					cameraPos.length() > TheMouse->m_dragTolerance3D)
-			{
-				isClick = FALSE;
-			}
-
 			// right click behavior (not right drag)
-			if (isClick)
+			if (TheMouse->isClick(&m_deselectFeedbackAnchor, &pixel, m_lastClick, currentTime))
 			{
 				//Added support to cancel the GUI command without deselecting the unit(s) involved
 				//when you right click.

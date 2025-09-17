@@ -217,9 +217,7 @@ void ControlBarScheme::reset(void)
 		while (it != m_layer[i].end())
 		{
 			ControlBarSchemeImage *im = *it;
-			if( im )
-				delete im;
-			im = NULL;
+			delete im;
 			it ++;
 		}
 		m_layer[i].clear();
@@ -232,12 +230,7 @@ void ControlBarScheme::reset(void)
 	while (it != m_animations.end())
 	{
 		ControlBarSchemeAnimation *anim = *it;
-		if( anim )
-		{
-			anim->m_animImage = NULL;
-			delete(anim);
-		}
-		anim = NULL;
+		delete anim;
 		it ++;
 	}
 	m_animations.clear();
@@ -691,7 +684,7 @@ void ControlBarScheme::addAnimation( ControlBarSchemeAnimation *schemeAnim )
 		return;
 	}
 	m_animations.push_back( schemeAnim );
-}// addAnimation
+}
 
 //
 // Add an image to the proper layer list
@@ -713,7 +706,7 @@ void ControlBarScheme::addImage( ControlBarSchemeImage *schemeImage )
 	}
 
 	m_layer[schemeImage->m_layer].push_back(schemeImage);
-}// addImage
+}
 
 //
 // Update the position of the image that's animating
@@ -850,9 +843,7 @@ ControlBarSchemeManager::~ControlBarSchemeManager( void )
 	while (it != m_schemeList.end())
 	{
 		ControlBarScheme *CBScheme = *it;
-		if( CBScheme )
-			delete CBScheme;
-		CBScheme = NULL;
+		delete CBScheme;
 		it ++;
 	}
 	m_schemeList.clear();

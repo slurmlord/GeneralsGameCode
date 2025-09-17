@@ -1250,41 +1250,37 @@ void HeightMapRenderObjClass::drawScorches(void)
 HeightMapRenderObjClass::~HeightMapRenderObjClass(void)
 {
 	freeMapResources();
-	if (m_treeBuffer) {
-		delete m_treeBuffer;
- 		m_treeBuffer = NULL;
-	}
-	if (m_bibBuffer) {
-		delete m_bibBuffer;
- 		m_bibBuffer = NULL;
-	}
-#ifdef TEST_CUSTOM_EDGING
-	if (m_customEdging) {
-		delete m_customEdging;
- 		m_customEdging = NULL;
-	}
-#endif
-#ifdef DO_ROADS
-	if (m_roadBuffer) {
-		delete m_roadBuffer;
- 		m_roadBuffer = NULL;
-	}
-#endif
-	if (m_bridgeBuffer) {
-		delete m_bridgeBuffer;
-	}
 
-	if( m_waypointBuffer )
-	{
-		delete m_waypointBuffer;
-	}
-	if (m_shroud) {
-		delete m_shroud;
-	}
-	if (m_extraBlendTilePositions)
-		delete [] m_extraBlendTilePositions;
-	if (m_shoreLineTilePositions)
-		delete [] m_shoreLineTilePositions;
+	delete m_treeBuffer;
+	m_treeBuffer = NULL;
+
+	delete m_bibBuffer;
+	m_bibBuffer = NULL;
+
+#ifdef TEST_CUSTOM_EDGING
+	delete m_customEdging;
+	m_customEdging = NULL;
+#endif
+
+#ifdef DO_ROADS
+	delete m_roadBuffer;
+	m_roadBuffer = NULL;
+#endif
+
+	delete m_bridgeBuffer;
+	m_bridgeBuffer = NULL;
+
+	delete m_waypointBuffer;
+	m_waypointBuffer = NULL;
+
+	delete m_shroud;
+	m_shroud = NULL;
+
+	delete [] m_extraBlendTilePositions;
+	m_extraBlendTilePositions = NULL;
+
+	delete [] m_shoreLineTilePositions;
+	m_shoreLineTilePositions = NULL;
 }
 
 //=============================================================================
@@ -4221,13 +4217,13 @@ void HeightMapRenderObjClass::renderShoreLines(CameraClass *pCamera)
 
 			DX8Wrapper::Set_Index_Buffer(ib_access,0);
 			DX8Wrapper::Set_Vertex_Buffer(vb_access);
-		}//lock and fill ib/vb
+		}
 
 		if (indexCount > 0 && vertexCount > 0)
 			DX8Wrapper::Draw_Triangles(	0,indexCount/3, 0,	vertexCount);	//draw a quad, 2 triangles, 4 verts
 		vertexCount=0;
 		indexCount=0;
-	}//for all shore tiles
+	}
 
 	//Disable writes to destination alpha
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_COLORWRITEENABLE,D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED);
@@ -4420,9 +4416,9 @@ void HeightMapRenderObjClass::renderExtraBlendTiles(void)
 				ib += 6;
 				vertexCount +=4;
 				indexCount +=6;
-			}//tile has 3rd blend layer and is visible
-		}	//for all extre blend tiles
-	}//unlock vertex buffer
+			}
+		}
+	}
 
 	if (vertexCount)
 	{

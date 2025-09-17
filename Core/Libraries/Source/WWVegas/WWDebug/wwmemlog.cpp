@@ -531,6 +531,7 @@ void WWMemoryLogClass::Register_Memory_Released(int category,int size)
 static void _MemLogCleanup(void)
 {
 	delete _TheMemLog;
+	_TheMemLog = NULL;
 }
 
 
@@ -578,10 +579,9 @@ MemLogClass * WWMemoryLogClass::Get_Log(void)
 void WWMemoryLogClass::Release_Log(void)
 {
 	MemLogMutexLockClass lock;
-	if (_TheMemLog) {
-		delete _TheMemLog;
-		_TheMemLog = NULL;
-	}
+
+	delete _TheMemLog;
+	_TheMemLog = NULL;
 }
 
 
