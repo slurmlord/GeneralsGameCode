@@ -2603,7 +2603,6 @@ Int DynamicMemoryAllocator::getRawBlockCount() const
 }
 void DynamicMemoryAllocator::fillAllocationRangeForRawBlockN(const Int n, MemoryPoolAllocatedRange& allocationRange) const
 {
-
 	MemoryPoolSingleBlock* block = m_rawBlocks;
 	for (int i = 0; i < n; ++i)
 	{

@@ -72,8 +72,6 @@
 #endif
 #ifdef RTS_ENABLE_CRASHDUMP
 #include "Common/MiniDumper.h"
-
-MiniDumper TheMiniDumper = MiniDumper();
 #endif
 
 // Horrible reference, but we really, really need to know if we are windowed.
@@ -735,12 +733,12 @@ void ReleaseCrash(const char *reason)
 	}
 
 #ifdef RTS_ENABLE_CRASHDUMP
-	if (TheMiniDumper.IsInitialized())
+	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
 		// Do dumps both with and without extended info
-		TheMiniDumper.TriggerMiniDump(false);
-		TheMiniDumper.TriggerMiniDump(true);
-		TheMiniDumper.ShutDown();
+		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
+		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
+		MiniDumper::shutdownMiniDumper();
 	}
 #endif
 
@@ -810,12 +808,12 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	}
 
 #ifdef RTS_ENABLE_CRASHDUMP
-	if (TheMiniDumper.IsInitialized())
+	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
 		// Do dumps both with and without extended info
-		TheMiniDumper.TriggerMiniDump(false);
-		TheMiniDumper.TriggerMiniDump(true);
-		TheMiniDumper.ShutDown();
+		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
+		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
+		MiniDumper::shutdownMiniDumper();
 	}
 #endif
 

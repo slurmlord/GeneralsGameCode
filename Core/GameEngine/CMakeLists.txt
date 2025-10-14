@@ -1174,6 +1174,7 @@ target_include_directories(corei_gameengine_private INTERFACE
 
 target_link_libraries(corei_gameengine_private INTERFACE
     corei_always
+    $<$<AND:$<BOOL:${IS_VS6_BUILD}>,$<BOOL:${RTS_CRASHDUMP_ENABLE}>>:shlwapi.lib>
 )
 
 target_compile_definitions(corei_gameengine_private INTERFACE

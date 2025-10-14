@@ -22,38 +22,42 @@
 #include <imagehlp.h>
 #include "Common/MiniDumper_compat.h"
 
+enum DumpType CPP_11(: Int)
+{
+	// Smallest dump type with call stacks and some supporting variables
+	DUMP_TYPE_MINIMAL,
+	// Large dump including all memory regions allocated by the GameMemory implementaion
+	DUMP_TYPE_GAMEMEMORY,
+	// Largest dump size including complete memory contents of the process
+	DUMP_TYPE_FULL,
+};
+
+enum MiniDumperExitCode CPP_11(: Int)
+{
+	DUMPER_EXIT_SUCCESS = 0x0,
+	DUMPER_EXIT_FAILURE_WAIT = 0x37DA1040,
+	DUMPER_EXIT_FAILURE_PARAM = 0x4EA527BB,
+	DUMPER_EXIT_FORCED_TERMINATE = 0x158B1154,
+};
+
 class MiniDumper
 {
 public:
-	MiniDumper()
-	{
-		m_miniDumpInitialized = false;
-		m_extendedInfoRequested = false;
-		m_dbgHlp = NULL;
-		m_pMiniDumpWriteDump = NULL;
-		m_dumpRequested = NULL;
-		m_dumpComplete = NULL;
-		m_quitting = NULL;
-		m_dumpThread = NULL;
-		m_dumpThreadId = 0;
-		m_dumpObjectsState = 0;
-		m_dumpObjectsSubState = 0;
-		m_dmaRawBlockIndex = 0;
-		memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpDir));
-		memset(m_dumpFile, 0, ARRAY_SIZE(m_dumpFile));
-		memset(m_sysDbgHelpPath, 0, ARRAY_SIZE(m_sysDbgHelpPath));
-	};
-
-	void Initialize(const AsciiString& userDirPath);
+	MiniDumper();
 	Bool IsInitialized() const;
-	void TriggerMiniDump(Bool extendedInfo = false);
-	void TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, Bool extendedInfo = false);
-	void ShutDown();
+	void TriggerMiniDump(DumpType dumpType);
+	void TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, DumpType dumpType);
+	static void initMiniDumper(const AsciiString& userDirPath);
+	static void shutdownMiniDumper();
 	static LONG WINAPI DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info);
+
 private:
-	void CreateMiniDump(Bool extendedInfo);
+	void Initialize(const AsciiString& userDirPath);
+	void ShutDown();
+	void CreateMiniDump(DumpType dumpType);
 	BOOL DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
 	void CleanupResources();
+	Bool IsDumpThreadStillRunning() const;
 
 	// Callbacks from dbghelp
 	static BOOL CALLBACK MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput);
@@ -68,7 +72,8 @@ private:
 	static void KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount);
 
 	// Struct to hold file information
-	struct FileInfo {
+	struct FileInfo
+	{
 		std::string name;
 		FILETIME lastWriteTime;
 	};
@@ -77,12 +82,13 @@ private:
 
 private:
 	Bool m_miniDumpInitialized;
-	Bool m_extendedInfoRequested;
+	DumpType m_requestedDumpType;
 
 	// Path buffers
 	Char m_dumpDir[MAX_PATH];
 	Char m_dumpFile[MAX_PATH];
 	Char m_sysDbgHelpPath[MAX_PATH];
+	WideChar m_executablePath[MAX_PATH];
 
 	// Module handles
 	HMODULE m_dbgHlp;
@@ -101,8 +107,7 @@ private:
 	int m_dumpObjectsSubState;
 	int m_dmaRawBlockIndex;
 
-	AllocationRangeIterator m_RangeIter;
-	AllocationRangeIterator m_endRangeIter;
+	AllocationRangeIterator m_rangeIter;
 
 	// Function pointer to MiniDumpWriteDump in dbghelp.dll
 	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
@@ -117,4 +122,6 @@ private:
 
 	MiniDumpWriteDump_t m_pMiniDumpWriteDump;
 };
+
+extern MiniDumper* TheMiniDumper;
 #endif
