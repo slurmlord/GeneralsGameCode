@@ -503,14 +503,17 @@ enum { MAX_SPECIAL_USED = 256 };
 #endif
 
 #ifdef RTS_ENABLE_CRASHDUMP
-class AllocationRangeIterator {
+class AllocationRangeIterator
+{
 	typedef const MemoryPoolAllocatedRange value_type;
 	typedef const MemoryPoolAllocatedRange* pointer;
 	typedef const MemoryPoolAllocatedRange& reference;
+
 public:
 
 	AllocationRangeIterator(const MemoryPoolFactory* factory);
-	AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob) {
+	AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob)
+	{
 		m_currentPool = &pool;
 		m_currentBlobInPool = &blob;
 		m_factory = NULL;
@@ -542,8 +545,15 @@ public:
 	// Postfix increment
 	AllocationRangeIterator operator++(int) { AllocationRangeIterator tmp = *this; ++(*this); return tmp; }
 
-	friend bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b) { return a.m_currentBlobInPool == b.m_currentBlobInPool; };
-	friend bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b) { return a.m_currentBlobInPool != b.m_currentBlobInPool; };
+	friend const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
+	{
+		return a.m_currentBlobInPool == b.m_currentBlobInPool;
+	};
+
+	friend const bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
+	{
+		return a.m_currentBlobInPool != b.m_currentBlobInPool;
+	};
 
 private:
 	const MemoryPoolFactory* m_factory;
@@ -648,11 +658,13 @@ public:
 
 	#endif
 #ifdef RTS_ENABLE_CRASHDUMP
-		AllocationRangeIterator cbegin() const {
+		AllocationRangeIterator cbegin() const
+		{
 			return AllocationRangeIterator(this);
 		}
 
-		AllocationRangeIterator cend() const {
+		AllocationRangeIterator cend() const
+		{
 			return AllocationRangeIterator(NULL, NULL);
 		}
 

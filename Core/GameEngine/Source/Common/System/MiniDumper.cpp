@@ -27,12 +27,54 @@
 _EXCEPTION_POINTERS* g_dumpException = NULL;
 DWORD g_dumpExceptionThreadId = 0;
 
+MiniDumper* TheMiniDumper = NULL;
+
 // Globals containing state about the current exception that's used for context in the mini dump.
 // These are populated by MiniDumper::DumpingExceptionFilter to store a copy of the exception in case it goes out of scope
 _EXCEPTION_POINTERS g_exceptionPointers = { 0 };
 EXCEPTION_RECORD g_exceptionRecord = { 0 };
 CONTEXT g_exceptionContext = { 0 };
 
+void MiniDumper::initMiniDumper(const AsciiString& userDirPath)
+{
+	DEBUG_ASSERTCRASH(TheMiniDumper == NULL, ("MiniDumper::initMiniDumper called on already created instance"));
+
+	// Use placement new on the process heap so TheMiniDumper is placed outside the MemoryPoolFactory managed area.
+	// If the crash is due to corrupted MemoryPoolFactory structures, try to mitigate the chances of MiniDumper memory also being corrupted
+	TheMiniDumper = new (::HeapAlloc(::GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(MiniDumper))) MiniDumper;
+	TheMiniDumper->Initialize(userDirPath);
+}
+
+void MiniDumper::shutdownMiniDumper()
+{
+	if (TheMiniDumper)
+	{
+		TheMiniDumper->ShutDown();
+		TheMiniDumper->~MiniDumper();
+		::HeapFree(::GetProcessHeap(), NULL, TheMiniDumper);
+		TheMiniDumper = NULL;
+	}
+}
+
+MiniDumper::MiniDumper()
+{
+	m_miniDumpInitialized = false;
+	m_requestedDumpType = DUMP_TYPE_MINIMAL;
+	m_dbgHlp = NULL;
+	m_pMiniDumpWriteDump = NULL;
+	m_dumpRequested = NULL;
+	m_dumpComplete = NULL;
+	m_quitting = NULL;
+	m_dumpThread = NULL;
+	m_dumpThreadId = 0;
+	m_dumpObjectsState = 0;
+	m_dumpObjectsSubState = 0;
+	m_dmaRawBlockIndex = 0;
+	memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpDir));
+	memset(m_dumpFile, 0, ARRAY_SIZE(m_dumpFile));
+	memset(m_sysDbgHelpPath, 0, ARRAY_SIZE(m_sysDbgHelpPath));
+	memset(m_executablePath, 0, ARRAY_SIZE(m_executablePath));
+};
 
 LONG WINAPI MiniDumper::DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info)
 {
@@ -46,7 +88,7 @@ LONG WINAPI MiniDumper::DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_inf
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
-void MiniDumper::TriggerMiniDump(Bool extendedInfo)
+void MiniDumper::TriggerMiniDump(DumpType dumpType)
 {
 	if (!m_miniDumpInitialized)
 	{
@@ -57,15 +99,15 @@ void MiniDumper::TriggerMiniDump(Bool extendedInfo)
 	__try
 	{
 		// Use DebugBreak to raise an exception that can be caught in the __except block
-		DebugBreak();
+		::DebugBreak();
 	}
 	__except (DumpingExceptionFilter(GetExceptionInformation()))
 	{
-		TriggerMiniDumpForException(g_dumpException, extendedInfo);
+		TriggerMiniDumpForException(g_dumpException, dumpType);
 	}
 }
 
-void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, Bool extendedInfo)
+void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, DumpType dumpType)
 {
 	if (!m_miniDumpInitialized)
 	{
@@ -74,58 +116,73 @@ void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info,
 	}
 
 	g_dumpException = e_info;
-	g_dumpExceptionThreadId = GetCurrentThreadId();
-	m_extendedInfoRequested = extendedInfo;
+	g_dumpExceptionThreadId = ::GetCurrentThreadId();
+	m_requestedDumpType = dumpType;
+#ifdef DISABLE_GAMEMEMORY
+	if (m_requestedDumpType == DUMP_TYPE_GAMEMEMORY)
+	{
+		// Dump the whole process if the game memory implementation is turned off
+		m_requestedDumpType = DUMP_TYPE_FULL;
+	}
+#endif
 
-	SetEvent(m_dumpRequested);
-	DWORD wait = WaitForSingleObject(m_dumpComplete, INFINITE);
+	DEBUG_ASSERTCRASH(IsDumpThreadStillRunning(), ("MiniDumper::TriggerMiniDumpForException: Dumping thread has exited."));
+	::SetEvent(m_dumpRequested);
+	DWORD wait = ::WaitForSingleObject(m_dumpComplete, INFINITE);
 	if (wait != WAIT_OBJECT_0)
 	{
 		if (wait == WAIT_FAILED)
 		{
-			DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Waiting for minidump triggering failed, status=%u, error=%u", wait, GetLastError()));
+			DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Waiting for minidump triggering failed: status=%u, error=%u", wait, ::GetLastError()));
 		}
 		else
 		{
-			DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Waiting for minidump triggering failed, status=%u", wait));
+			DEBUG_LOG(("MiniDumper::TriggerMiniDumpForException: Waiting for minidump triggering failed: status=%u", wait));
 		}
 	}
 
-	ResetEvent(m_dumpComplete);
+	::ResetEvent(m_dumpComplete);
 }
 
 void MiniDumper::Initialize(const AsciiString& userDirPath)
 {
 	// Find the full path to the dbghelp.dll file in the system32 dir
-	GetSystemDirectory(m_sysDbgHelpPath, MAX_PATH);
+	::GetSystemDirectory(m_sysDbgHelpPath, MAX_PATH);
 	strlcat(m_sysDbgHelpPath, "\\dbghelp.dll", MAX_PATH);
 
 	// We want to only use the dbghelp.dll from the OS installation, as the one bundled with the game does not support MiniDump functionality
 	Bool loadedDbgHelp = false;
-	HMODULE m_dbgHlp = GetModuleHandle(m_sysDbgHelpPath);
+	HMODULE m_dbgHlp = ::GetModuleHandle(m_sysDbgHelpPath);
 	if (m_dbgHlp == NULL)
 	{
 		// Load the dbghelp library from the system folder
-		m_dbgHlp = LoadLibrary(m_sysDbgHelpPath);
+		m_dbgHlp = ::LoadLibrary(m_sysDbgHelpPath);
 		if (m_dbgHlp == NULL)
 		{
-			DEBUG_LOG(("MiniDumper::Initialize: Unable to load system-provided dbghelp.dll from '%s', error code=%u", m_sysDbgHelpPath, GetLastError()));
+			DEBUG_LOG(("MiniDumper::Initialize: Unable to load system-provided dbghelp.dll from '%s': error=%u", m_sysDbgHelpPath, ::GetLastError()));
 			return;
 		}
 
 		loadedDbgHelp = true;
 	}
 
-	m_pMiniDumpWriteDump = (MiniDumpWriteDump_t)GetProcAddress(m_dbgHlp, "MiniDumpWriteDump");
+	m_pMiniDumpWriteDump = reinterpret_cast<MiniDumpWriteDump_t>(::GetProcAddress(m_dbgHlp, "MiniDumpWriteDump"));
 	if (m_pMiniDumpWriteDump == NULL)
 	{
 		if (loadedDbgHelp)
 		{
-			FreeLibrary(m_dbgHlp);
+			::FreeLibrary(m_dbgHlp);
 			m_dbgHlp = NULL;
 		}
 
 		DEBUG_LOG(("MiniDumper::Initialize: Could not get address of proc MiniDumpWriteDump from '%s'!", m_sysDbgHelpPath));
+		return;
+	}
+
+	DWORD executableSize = ::GetModuleFileNameW(NULL, m_executablePath, ARRAY_SIZE(m_executablePath));
+	if (executableSize == 0 || executableSize == ARRAY_SIZE(m_executablePath))
+	{
+		DEBUG_LOG(("MiniDumper::Initialize: Could not get executable file name. Returned value=%u", executableSize));
 		return;
 	}
 
@@ -142,22 +199,22 @@ void MiniDumper::Initialize(const AsciiString& userDirPath)
 	if (m_dumpRequested == NULL || m_dumpComplete == NULL || m_quitting == NULL)
 	{
 		// Something went wrong with the creation of the events..
-		DEBUG_LOG(("MiniDumper::Initialize: Unable to create events: error=%u", GetLastError()));
+		DEBUG_LOG(("MiniDumper::Initialize: Unable to create events: error=%u", ::GetLastError()));
 		CleanupResources();
 		return;
 	}
 
-	m_dumpThread = CreateThread(NULL, 0, MiniDumpThreadProc, this, CREATE_SUSPENDED, &m_dumpThreadId);
+	m_dumpThread = ::CreateThread(NULL, 0, MiniDumpThreadProc, this, CREATE_SUSPENDED, &m_dumpThreadId);
 	if (!m_dumpThread)
 	{
-		DEBUG_LOG(("MiniDumper::Initialize: Unable to create thread: error=%u", GetLastError()));
+		DEBUG_LOG(("MiniDumper::Initialize: Unable to create thread: error=%u", ::GetLastError()));
 		CleanupResources();
 		return;
 	}
 
-	if (!ResumeThread(m_dumpThread))
+	if (!::ResumeThread(m_dumpThread))
 	{
-		DEBUG_LOG(("MiniDumper::Initialize: Unable to resume thread: error=%u", GetLastError()));
+		DEBUG_LOG(("MiniDumper::Initialize: Unable to resume thread: error=%u", ::GetLastError()));
 		CleanupResources();
 		return;
 	}
@@ -171,6 +228,17 @@ Bool MiniDumper::IsInitialized() const
 	return m_miniDumpInitialized;
 }
 
+Bool MiniDumper::IsDumpThreadStillRunning() const
+{
+	DWORD exitCode;
+	if (::GetExitCodeThread(m_dumpThread, &exitCode) && exitCode == STILL_ACTIVE)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 {
 	constexpr Int MaxExtendedFileCount = 2;
@@ -178,11 +246,11 @@ Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 
 	strlcpy(m_dumpDir, userDirPath.str(), ARRAY_SIZE(m_dumpDir));
 	strlcat(m_dumpDir, "CrashDumps\\", ARRAY_SIZE(m_dumpDir));
-	if (_access(m_dumpDir, 0) != 0)
+	if (::_access(m_dumpDir, 0) != 0)
 	{
-		if (!CreateDirectory(m_dumpDir, NULL))
+		if (!::CreateDirectory(m_dumpDir, NULL))
 		{
-			DEBUG_LOG(("MiniDumper::Initialize: Unable to create path for crash dumps at '%s': %u", m_dumpDir, GetLastError()));
+			DEBUG_LOG(("MiniDumper::Initialize: Unable to create path for crash dumps at '%s': error=%u", m_dumpDir, ::GetLastError()));
 			return false;
 		}
 	}
@@ -196,34 +264,34 @@ Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 
 void MiniDumper::CleanupResources()
 {
-	// NOTE: This method should not be called unless the dump thread is confirmed to not be running anymore.
 	if (m_dumpThread != NULL)
 	{
-		CloseHandle(m_dumpThread);
+		DEBUG_ASSERTCRASH(!IsDumpThreadStillRunning(), ("MiniDumper::CleanupResources() called while Dump thread still active"));
+		::CloseHandle(m_dumpThread);
 		m_dumpThread = NULL;
 	}
 
 	if (m_dumpComplete != NULL)
 	{
-		CloseHandle(m_dumpComplete);
+		::CloseHandle(m_dumpComplete);
 		m_dumpComplete = NULL;
 	}
 
 	if (m_dumpRequested != NULL)
 	{
-		CloseHandle(m_dumpRequested);
+		::CloseHandle(m_dumpRequested);
 		m_dumpRequested = NULL;
 	}
 
 	if (m_quitting != NULL)
 	{
-		CloseHandle(m_quitting);
+		::CloseHandle(m_quitting);
 		m_quitting = NULL;
 	}
 
 	if (m_dbgHlp != NULL)
 	{
-		FreeModule(m_dbgHlp);
+		::FreeModule(m_dbgHlp);
 		m_dbgHlp = NULL;
 	}
 }
@@ -235,23 +303,24 @@ void MiniDumper::ShutDown()
 		return;
 	}
 
-	SetEvent(m_quitting);
-	DWORD waitRet = WaitForSingleObject(m_dumpThread, 3000);
+	::SetEvent(m_quitting);
+	DWORD waitRet = ::WaitForSingleObject(m_dumpThread, 3000);
 	if (waitRet != WAIT_OBJECT_0)
 	{
 		if (waitRet == WAIT_TIMEOUT)
 		{
 			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for dumping thread to exit timed out, killing thread", waitRet));
-			TerminateThread(m_dumpThread, 2);
+			::TerminateThread(m_dumpThread, DUMPER_EXIT_FORCED_TERMINATE);
 		}
 		else if (waitRet == WAIT_FAILED)
 		{
-			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for minidump triggering failed, status=%u, error=%u", waitRet, GetLastError()));
+			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for minidump triggering failed: status=%u, error=%u", waitRet, ::GetLastError()));
 		}
 		else
 		{
-			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for minidump triggering failed, status=%u", waitRet));
+			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for minidump triggering failed: status=%u", waitRet));
 		}
+
 		return;
 	}
 
@@ -264,31 +333,32 @@ DWORD MiniDumper::ThreadProcInternal()
 	while (true)
 	{
 		HANDLE waitEvents[2] = { m_dumpRequested, m_quitting };
-		DWORD event = WaitForMultipleObjects(ARRAY_SIZE(waitEvents), waitEvents, FALSE, INFINITE);
+		DWORD event = ::WaitForMultipleObjects(ARRAY_SIZE(waitEvents), waitEvents, FALSE, INFINITE);
 		if (event == WAIT_OBJECT_0 + 0)
 		{
 			// A dump is requested (m_dumpRequested)
-			ResetEvent(m_dumpComplete);
-			CreateMiniDump(m_extendedInfoRequested);
-			ResetEvent(m_dumpRequested);
-			SetEvent(m_dumpComplete);
+			::ResetEvent(m_dumpComplete);
+			CreateMiniDump(m_requestedDumpType);
+			::ResetEvent(m_dumpRequested);
+			::SetEvent(m_dumpComplete);
 		}
 		else if (event == WAIT_OBJECT_0 + 1)
 		{
 			// Quit (m_quitting)
-			return 0;
+			return DUMPER_EXIT_SUCCESS;
 		}
 		else
 		{
 			if (event == WAIT_FAILED)
 			{
-				DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed, status=%u, error=%u", event, GetLastError()));
+				DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed: status=%u, error=%u", event, ::GetLastError()));
 			}
 			else
 			{
-				DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed, status=%u", event));
+				DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed: status=%u", event));
 			}
-			return 1;
+
+			return DUMPER_EXIT_FAILURE_WAIT;
 		}
 	}
 }
@@ -298,7 +368,7 @@ DWORD WINAPI MiniDumper::MiniDumpThreadProc(LPVOID lpParam)
 	if (lpParam == NULL)
 	{
 		DEBUG_LOG(("MiniDumper::MiniDumpThreadProc: The provided parameter was NULL, exiting thread."));
-		return -1;
+		return DUMPER_EXIT_FAILURE_PARAM;
 	}
 
 	MiniDumper* dumper = static_cast<MiniDumper *>(lpParam);
@@ -306,30 +376,29 @@ DWORD WINAPI MiniDumper::MiniDumpThreadProc(LPVOID lpParam)
 }
 
 
-void MiniDumper::CreateMiniDump(Bool extendedInfo)
+void MiniDumper::CreateMiniDump(DumpType dumpType)
 {
 	// Create a unique dump file name, using the path from m_dumpDir, in m_dumpFile
 	SYSTEMTIME sysTime;
-	GetLocalTime(&sysTime);
-#if RTS_ZEROHOUR
-	Char product = 'Z';
-#else
+	::GetLocalTime(&sysTime);
+#if RTS_GENERALS
 	Char product = 'G';
+#elif RTS_ZEROHOUR
+	Char product = 'Z';
 #endif
-	Char dumpTypeSpecifier = extendedInfo ? 'X' : 'M';
-	DWORD currentProcessId = GetCurrentProcessId();
-	DWORD currentThreadId = GetCurrentThreadId();
+	Char dumpTypeSpecifier = dumpType == DUMP_TYPE_MINIMAL ? 'M' : 'X';
+	DWORD currentProcessId = ::GetCurrentProcessId();
 
 	// m_dumpDir is stored with trailing backslash in Initialize
-	snprintf(m_dumpFile, ARRAY_SIZE(m_dumpFile), "%sCrash%c%c-%04d%02d%02d-%02d%02d%02d-%s-%ld-%ld.dmp",
+	snprintf(m_dumpFile, ARRAY_SIZE(m_dumpFile), "%sCrash%c%c-%04d%02d%02d-%02d%02d%02d-%s-pid%ld.dmp",
 		m_dumpDir, dumpTypeSpecifier, product, sysTime.wYear, sysTime.wMonth,
 		sysTime.wDay, sysTime.wHour, sysTime.wMinute, sysTime.wSecond,
-		GitShortSHA1, currentProcessId, currentThreadId);
+		GitShortSHA1, currentProcessId);
 
 	HANDLE dumpFile = CreateFile(m_dumpFile, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (dumpFile == NULL || dumpFile == INVALID_HANDLE_VALUE)
 	{
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: Unable to create dump file '%s', error=%u", m_dumpFile, GetLastError()));
+		DEBUG_LOG(("MiniDumper::CreateMiniDump: Unable to create dump file '%s': error=%u", m_dumpFile, ::GetLastError()));
 		return;
 	}
 
@@ -345,45 +414,51 @@ void MiniDumper::CreateMiniDump(Bool extendedInfo)
 
 	PMINIDUMP_CALLBACK_INFORMATION callbackInfoPtr = NULL;
 	MINIDUMP_CALLBACK_INFORMATION callBackInfo = { 0 };
-	if (extendedInfo)
+	if (dumpType == DUMP_TYPE_GAMEMEMORY)
 	{
 		callBackInfo.CallbackRoutine = MiniDumpCallback;
 		callBackInfo.CallbackParam = this;
 		callbackInfoPtr = &callBackInfo;
 	}
 
-	MINIDUMP_TYPE dumpType = static_cast<MINIDUMP_TYPE>(MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory);
-	if (extendedInfo)
+	int dumpTypeFlags = MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory;
+	if (dumpType != DUMP_TYPE_MINIMAL)
 	{
-		dumpType = static_cast<MINIDUMP_TYPE>(MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithFullMemoryInfo);
+		dumpTypeFlags |= MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpWithFullMemoryInfo;
+		if (dumpType == DUMP_TYPE_FULL)
+		{
+			dumpTypeFlags |= MiniDumpWithFullMemory;
+		}
 	}
 
+	MINIDUMP_TYPE miniDumpType = static_cast<MINIDUMP_TYPE>(dumpTypeFlags);
 	BOOL success = m_pMiniDumpWriteDump(
-		GetCurrentProcess(),
+		::GetCurrentProcess(),
 		currentProcessId,
 		dumpFile,
-		dumpType,
+		miniDumpType,
 		exceptionInfoPtr,
 		NULL,
 		callbackInfoPtr);
 
 	if (!success)
 	{
-		DEBUG_LOG(("MiniDumper::CreateMiniDump: Unable to write minidump file '%s', error=%u", m_dumpFile, GetLastError()));
+		DEBUG_LOG(("MiniDumper::CreateMiniDump: Unable to write minidump file '%s': error=%u", m_dumpFile, ::GetLastError()));
 	}
 	else
 	{
 		DEBUG_LOG(("MiniDumper::CreateMiniDump: Successfully wrote minidump file to '%s'", m_dumpFile));
 	}
 
-	CloseHandle(dumpFile);
+	::CloseHandle(dumpFile);
 }
 
 BOOL CALLBACK MiniDumper::MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput)
 {
 	if (CallbackParam == NULL || CallbackInput == NULL || CallbackOutput == NULL)
 	{
-		DEBUG_LOG(("MiniDumper::MiniDumpCallback: Required parameters were null; CallbackParam=%p, CallbackInput=%p, CallbackOutput=%p.", CallbackParam, CallbackInput, CallbackOutput));
+		DEBUG_LOG(("MiniDumper::MiniDumpCallback: Required parameters were null; CallbackParam=%p, CallbackInput=%p, CallbackOutput=%p.",
+			CallbackParam, CallbackInput, CallbackOutput));
 		return false;
 	}
 
@@ -405,7 +480,7 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		// Only include data segments for the game and ntdll modules to keep dump size low
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
 		{
-			if (!StrStrIW(input.Module.FullPath, L"generalszh.exe") && !StrStrIW(input.Module.FullPath, L"generalsv.exe") && !StrStrIW(input.Module.FullPath, L"ntdll.dll"))
+			if (::StrCmpIW(input.Module.FullPath, m_executablePath) != 0 && !::StrStrIW(input.Module.FullPath, L"ntdll.dll"))
 			{
 				// Exclude data segments for the module
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
@@ -430,16 +505,21 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		break;
 	case MemoryCallback:
 	{
+#ifndef DISABLE_GAMEMEMORY
 		do
 		{
 			// DumpMemoryObjects will return false once it's completed, signalling the end of memory callbacks
 			retVal = DumpMemoryObjects(output.MemoryBase, output.MemorySize);
 		} while ((output.MemoryBase == NULL || output.MemorySize == NULL) && retVal == TRUE);
+#else
+		retVal = FALSE;
+#endif
 		break;
 	}
 	case ReadMemoryFailureCallback:
 	{
-		DEBUG_LOG(("MiniDumper::CallbackInternal: ReadMemoryFailure with MemoryBase=%llu, MemorySize=%lu, error=%u", input.ReadMemoryFailure.Offset, input.ReadMemoryFailure.Bytes, input.ReadMemoryFailure.FailureStatus));
+		DEBUG_LOG(("MiniDumper::CallbackInternal: ReadMemoryFailure with MemoryBase=%llu, MemorySize=%lu: error=%u",
+			input.ReadMemoryFailure.Offset, input.ReadMemoryFailure.Bytes, input.ReadMemoryFailure.FailureStatus));
 		retVal = TRUE;
 		break;
 	}
@@ -507,18 +587,17 @@ BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 		//m_dumpObjectsSubState is used to track if the iterator needs to be initialized, otherwise just a counter of the number of items dumped
 		if (m_dumpObjectsSubState == 0)
 		{
-			m_RangeIter = TheMemoryPoolFactory->cbegin();
-			m_endRangeIter = TheMemoryPoolFactory->cend();
+			m_rangeIter = TheMemoryPoolFactory->cbegin();
 			++m_dumpObjectsSubState;
 		}
 
-		// m_RangeIter should != m_endRangeIter, unless the memory pool factory is corrupted (or has 0 entries)
-		memoryBase = reinterpret_cast<ULONG64>(m_RangeIter->allocationAddr);
-		memorySize = m_RangeIter->allocationSize;
+		// m_RangeIter should != cend() at this point before advancing, unless the memory pool factory is corrupted (or has 0 entries)
+		memoryBase = reinterpret_cast<ULONG64>(m_rangeIter->allocationAddr);
+		memorySize = m_rangeIter->allocationSize;
 		++m_dumpObjectsSubState;
-		++m_RangeIter;
+		++m_rangeIter;
 
-		if (m_RangeIter == m_endRangeIter)
+		if (m_rangeIter == TheMemoryPoolFactory->cend())
 		{
 			++m_dumpObjectsState;
 			m_dumpObjectsSubState = 0;
@@ -583,8 +662,9 @@ BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 }
 
 // Comparator for sorting files by last modified time (newest first)
-bool MiniDumper::CompareByLastWriteTime(const FileInfo& a, const FileInfo& b) {
-	return CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
+bool MiniDumper::CompareByLastWriteTime(const FileInfo& a, const FileInfo& b)
+{
+	return ::CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
 }
 
 void MiniDumper::KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount)
@@ -592,20 +672,23 @@ void MiniDumper::KeepNewestFiles(const std::string& directory, const std::string
 	// directory already contains trailing backslash
 	std::string searchPath = directory + fileWildcard;
 	WIN32_FIND_DATA findData;
-	HANDLE hFind = FindFirstFile(searchPath.c_str(), &findData);
+	HANDLE hFind = ::FindFirstFile(searchPath.c_str(), &findData);
 
-	if (hFind == INVALID_HANDLE_VALUE) {
-		if (GetLastError() != ERROR_FILE_NOT_FOUND)
+	if (hFind == INVALID_HANDLE_VALUE)
+	{
+		if (::GetLastError() != ERROR_FILE_NOT_FOUND)
 		{
-			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Unable to find files in directory '%s': %u", searchPath.c_str(), GetLastError()));
+			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Unable to find files in directory '%s': error=%u", searchPath.c_str(), ::GetLastError()));
 		}
 
 		return;
 	}
 
 	std::vector<FileInfo> files;
-	do {
-		if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+	do
+	{
+		if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
 			continue;
 		}
 
@@ -615,20 +698,23 @@ void MiniDumper::KeepNewestFiles(const std::string& directory, const std::string
 		fileInfo.lastWriteTime = findData.ftLastWriteTime;
 		files.push_back(fileInfo);
 
-	} while (FindNextFile(hFind, &findData));
+	} while (::FindNextFile(hFind, &findData));
 
-	FindClose(hFind);
+	::FindClose(hFind);
 
 	// Sort files by last modified time in descending order
 	std::sort(files.begin(), files.end(), CompareByLastWriteTime);
 
 	// Delete files beyond the newest keepCount
-	for (size_t i = keepCount; i < files.size(); ++i) {
-		if (DeleteFile(files[i].name.c_str())) {
+	for (size_t i = keepCount; i < files.size(); ++i)
+	{
+		if (::DeleteFile(files[i].name.c_str()))
+		{
 			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Deleted old dump file '%s'.", files[i].name.c_str()));
 		}
-		else {
-			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Failed to delete file '%s', error=%u", files[i].name.c_str(), GetLastError()));
+		else
+		{
+			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Failed to delete file '%s': error=%u", files[i].name.c_str(), ::GetLastError()));
 		}
 	}
 }
