@@ -67,9 +67,11 @@ MiniDumper::MiniDumper()
 	m_quitting = NULL;
 	m_dumpThread = NULL;
 	m_dumpThreadId = 0;
+#ifndef DISABLE_GAMEMEMORY
 	m_dumpObjectsState = 0;
 	m_dumpObjectsSubState = 0;
 	m_dmaRawBlockIndex = 0;
+#endif
 	memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpDir));
 	memset(m_dumpFile, 0, ARRAY_SIZE(m_dumpFile));
 	memset(m_sysDbgHelpPath, 0, ARRAY_SIZE(m_sysDbgHelpPath));
@@ -533,6 +535,7 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 	return retVal;
 }
 
+#ifndef DISABLE_GAMEMEMORY
 BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 {
 	BOOL moreToDo = TRUE;
@@ -660,6 +663,7 @@ BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 
 	return moreToDo;
 }
+#endif
 
 // Comparator for sorting files by last modified time (newest first)
 bool MiniDumper::CompareByLastWriteTime(const FileInfo& a, const FileInfo& b)

@@ -102,12 +102,14 @@ private:
 	HANDLE m_dumpThread;
 	DWORD m_dumpThreadId;
 
+#ifndef DISABLE_GAMEMEMORY
 	// Internal memory dumping progress state
 	int m_dumpObjectsState;
 	int m_dumpObjectsSubState;
 	int m_dmaRawBlockIndex;
 
 	AllocationRangeIterator m_rangeIter;
+#endif
 
 	// Function pointer to MiniDumpWriteDump in dbghelp.dll
 	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
