@@ -26,7 +26,11 @@
 //
 // Debug class implementation
 //////////////////////////////////////////////////////////////////////////////
-#include "_pch.h"
+#include "debug.h"
+#include "internal.h"
+#include "internal_except.h"
+#include "internal_io.h"
+#include <windows.h>
 #include <stringex.h>
 #include <stdlib.h>
 #include <Utility/stdio_adapter.h>

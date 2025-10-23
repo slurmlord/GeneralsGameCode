@@ -31,6 +31,8 @@
 #ifndef INTERNAL_IO_H // Include guard
 #define INTERNAL_IO_H
 
+#include <windows.h>
+
 /// \internal \brief con debug I/O class
 class DebugIOCon: public DebugIOInterface
 {

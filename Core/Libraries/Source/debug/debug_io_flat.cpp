@@ -26,7 +26,11 @@
 //
 // Debug I/O class flat (flat or split log file)
 //////////////////////////////////////////////////////////////////////////////
-#include "_pch.h"
+#include "debug.h"
+#include "debug_io.h"
+#include "internal.h"
+#include "internal_io.h"
+#include <windows.h>
 #include "stringex.h"
 #include <stdlib.h>
 #include <WWCommon.h>
