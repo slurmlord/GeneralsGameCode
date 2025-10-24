@@ -169,6 +169,15 @@ target_include_directories(core_wwlib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_precompile_headers(core_wwlib PRIVATE
+    always.h
+    WWCommon.h
+    STLUtils.h
+    wwstring.h
+    <windows.h>
+    win.h
+)
+
 target_link_libraries(core_wwlib PRIVATE
     core_wwcommon
     corei_always
