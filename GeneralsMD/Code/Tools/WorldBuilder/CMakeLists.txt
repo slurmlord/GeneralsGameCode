@@ -209,6 +209,17 @@ target_include_directories(z_worldbuilder PRIVATE
     res
 )
 
+target_compile_definitions(z_worldbuilder PRIVATE
+    DEFINE_EDITOR_SORTING_NAMES=1
+)
+
+target_precompile_headers(z_worldbuilder PRIVATE
+    include/StdAfx.h
+    include/WorldBuilder.h
+    <always.h>
+    <WWCommon.h>
+)
+
 target_link_libraries(z_worldbuilder PRIVATE
     core_debug
     core_profile

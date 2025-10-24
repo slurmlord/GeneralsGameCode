@@ -25,7 +25,6 @@ selected, makes the current object in the object options panel match this object
 Then the new object is created by the object options panel, so team parenting and
 so forth is all handled in the object options panel.  jba. */
 
-#define DEFINE_EDITOR_SORTING_NAMES
 
 #include "StdAfx.h"
 #include "resource.h"

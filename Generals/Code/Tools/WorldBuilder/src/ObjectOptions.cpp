@@ -19,7 +19,6 @@
 // ObjectOptions.cpp : implementation file
 //
 
-#define DEFINE_EDITOR_SORTING_NAMES
 
 #include "StdAfx.h"
 #include "resource.h"

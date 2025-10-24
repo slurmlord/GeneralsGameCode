@@ -202,7 +202,17 @@ target_include_directories(g_worldbuilder PRIVATE
     res
 )
 
-target_compile_definitions(g_worldbuilder PRIVATE _AFXDLL)
+target_compile_definitions(g_worldbuilder PRIVATE
+    _AFXDLL
+    DEFINE_EDITOR_SORTING_NAMES=1
+)
+
+target_precompile_headers(g_worldbuilder PRIVATE
+    include/StdAfx.h
+    include/WorldBuilder.h
+    <always.h>
+    <WWCommon.h>
+)
 
 target_link_libraries(g_worldbuilder PRIVATE
     d3d8lib
