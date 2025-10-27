@@ -204,6 +204,27 @@ void LANAPI::handleRequestGameInfo( LANMessage *msg, UnsignedInt senderIP )
 	}
 }
 
+static Bool IsInvalidCharForPlayerName(WideChar c)
+{
+	return c < L' ' // C0 control chars
+		|| c == L',' || c == L':' || c == L';' // chars used for strtok in ParseAsciiStringToGameInfo
+		|| (c >= L'\x007f' && c <= L'\x009f') // DEL + C1 control chars
+		|| c == L'\x2028' || c == L'\x2029' // line and paragraph separators
+		|| (c >= L'\xdc00' && c <= L'\xdfff') // low surrogate, for chars beyond the Unicode Basic Multilingual Plane
+		|| (c >= L'\xd800' && c <= L'\xdbff'); // high surrogate, for chars beyond the BMP
+}
+
+static Bool IsSpaceCharacter(WideChar c)
+{
+	return c == L' ' // space
+		|| c == L'\xA0' // no-break space
+		|| c == L'\x1680' // ogham space mark
+		|| (c >= L'\x2000' && c <= L'\x200A') // en/em spaces, figure, punctuation, thin, hair
+		|| c == L'\x202F' // narrow no-break space
+		|| c == L'\x205F' // medium mathematical space
+		|| c == L'\x3000'; // ideographic space
+}
+
 void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 {
 	UnsignedInt responseIP = senderIP;	// need this cause the player may or may not be
@@ -294,10 +315,16 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			// should not be in a player name. It should also not consist of only space characters.
 			if (canJoin)
 			{
-				constexpr WideChar IllegalNameChars[] = L",:;|\f\n\r\t\v";
-				const Bool containsIllegalChars = wcscspn(msg->name, IllegalNameChars);
-				const Bool isEffectivelyEmpty = wcsspn(msg->name, L" ") == wcslen(msg->name);
-				if (containsIllegalChars || isEffectivelyEmpty)
+				const size_t nameLen = wcslen(msg->name);
+				Bool containsIllegalChars = false;
+				Bool containsNonSpaces = false;
+				for (size_t i = 0; i < nameLen; ++i)
+				{
+					containsIllegalChars |= IsInvalidCharForPlayerName(msg->name[i]);
+					containsNonSpaces |= !IsSpaceCharacter(msg->name[i]);
+				}
+
+				if (containsIllegalChars || !containsNonSpaces)
 				{
 					// Just deny with a duplicate name reason, for backwards compatibility with retail
 					reply.LANMessageType = LANMessage::MSG_JOIN_DENY;
