@@ -998,17 +998,12 @@ static void EnsureUniqueNames(AsciiStringVec& playerNames)
 			continue;
 
 		Int charOffset = -1;
-		Int nameLength = -1;
+		Int nameLength = playerName.getLength();
 		while (uniqueNames.insert(playerName).second == false)
 		{
 			// The name already exists, so change the last char to the number index of the player in the game.
 			// If that fails to be unique, iterate through 0-9 and change the last char to ensure differentiation.
 			// Guaranteed to find a unique name as the number of slots is less than 10.
-			if (nameLength == -1)
-			{
-				nameLength = playerName.getLength();
-			}
-
 			char charToTry = '0' + static_cast<char>(charOffset == -1 ? i : charOffset);
 			playerName[nameLength - 1] = charToTry;
 			++charOffset;
