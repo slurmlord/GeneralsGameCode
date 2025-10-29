@@ -44,9 +44,6 @@
 
 #pragma once
 
-#ifndef __W3DTREE_BUFFER_H_
-#define __W3DTREE_BUFFER_H_
-
 //-----------------------------------------------------------------------------
 //           Includes
 //-----------------------------------------------------------------------------
@@ -83,7 +80,7 @@ enum W3DToppleState CPP_11(: Int)
 	TOPPLE_UPRIGHT = 0,
 	TOPPLE_FALLING,
 	TOPPLE_FOGGED,
-	TOPPPLE_SHROUDED,
+	TOPPLE_SHROUDED, // unused
 	TOPPLE_DOWN
 };
 /// The individual data for a tree.
@@ -121,7 +118,7 @@ typedef struct {
 	Real					m_angularAccumulation;		///< How much have I rotated so I know when to bounce.
 	UnsignedInt		m_options;								///< topple options
 	Matrix3D			m_mtx;
-	UnsignedInt		m_sinkFramesLeft;					///< Toppled trees sink into the terrain & disappear, how many frames left.
+	Real					m_sinkFramesLeft;					///< Toppled trees sink into the terrain & disappear, how many frames left.
 
 } TTree;
 
@@ -144,29 +141,31 @@ typedef struct {
 //
 // W3DTreeBuffer: Draw buffer for the trees.
 //
+// TheSuperHackers @info This class acts as a bootstrap for adding a new tree
+// instance to the tree buffer. It does not do anything useful until it is deleted.
 //
 class W3DTreeBuffer : public Snapshot
 {
 //friend class BaseHeightMapRenderObjClass;
 
-//-----------------------------------------------------------------------------
-//                             W3DTreeTextureClass
-//-----------------------------------------------------------------------------
-class W3DTreeTextureClass : public TextureClass
-{
-	W3DMPO_GLUE(W3DTreeTextureClass)
-protected:
-	virtual void Apply(unsigned int stage);
+	//-----------------------------------------------------------------------------
+	//                             W3DTreeTextureClass
+	//-----------------------------------------------------------------------------
+	class W3DTreeTextureClass : public TextureClass
+	{
+		W3DMPO_GLUE(W3DTreeTextureClass)
+	protected:
+		virtual void Apply(unsigned int stage);
 
-public:
-		/// Create texture.
-		W3DTreeTextureClass(unsigned width, unsigned height);
+	public:
+			/// Create texture.
+			W3DTreeTextureClass(unsigned width, unsigned height);
 
-		// just use default destructor. ~TerrainTextureClass(void);
-public:
-	int update(W3DTreeBuffer *buffer); ///< Sets the pixels, and returns the actual height of the texture.
-	void setLOD(Int LOD) const;
-};
+			// just use default destructor. ~TerrainTextureClass(void);
+	public:
+		int update(W3DTreeBuffer *buffer); ///< Sets the pixels, and returns the actual height of the texture.
+		void setLOD(Int LOD) const;
+	};
 
 public:
 
@@ -254,7 +253,6 @@ private:
 	Real		m_curSwayOffset[MAX_SWAY_TYPES];
 	Real		m_curSwayStep[MAX_SWAY_TYPES];
 	Real		m_curSwayFactor[MAX_SWAY_TYPES];
-	Int			m_lastLogicFrame;
 
 	W3DProjectedShadow *m_shadow;
 
@@ -280,10 +278,8 @@ protected:
 
 	Int  getPartitionBucket(const Coord3D &pos) const;
 
-	void updateTopplingTree(TTree *tree);
+	void updateTopplingTree(TTree *tree, Real timeScale);
 	void applyTopplingForce( TTree *tree, const Coord3D* toppleDirection, Real toppleSpeed,
 																			 UnsignedInt options );
 
 };
-
-#endif  // end __W3DTREE_BUFFER_H_

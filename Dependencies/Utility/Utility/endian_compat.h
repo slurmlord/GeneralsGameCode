@@ -19,7 +19,6 @@
 // This file contains macros to help with endian conversions between different endian systems.
 #pragma once
 
-// VC6 does not support pragma once
 #ifndef ENDIAN_COMPAT_H
 #define ENDIAN_COMPAT_H
 
@@ -244,3 +243,4 @@ template<typename Type> inline void letoh_ref(Type &value) { value = Endian::let
 #endif // _MSC_VER < 1300
 
 #endif // ENDIAN_COMPAT_H
+

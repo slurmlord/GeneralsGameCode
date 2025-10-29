@@ -34,9 +34,6 @@
 
 #pragma once
 
-#ifndef __W3DVIEW_H_
-#define __W3DVIEW_H_
-
 // SYSTEM INCLUDES ////////////////////////////////////////////////////////////////////////////////
 
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
@@ -277,9 +274,7 @@ private:
 	void getAxisAlignedViewRegion(Region3D &axisAlignedRegion);	///< Find 3D Region enclosing all possible drawables.
 	void calcDeltaScroll(Coord2D &screenDelta);
 
-};  // end class W3DView
+};
 
 // EXTERNALS //////////////////////////////////////////////////////////////////////////////////////
 extern Real TheW3DFrameLengthInMsec;
-
-#endif  // end __W3DVIEW_H_

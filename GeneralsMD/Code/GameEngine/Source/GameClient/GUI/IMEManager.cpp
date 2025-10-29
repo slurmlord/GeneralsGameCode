@@ -540,10 +540,7 @@ IMEManager::~IMEManager()
 		TheWindowManager->winDestroy( m_statusWindow );
 	}
 
-	if ( m_candidateString )
-	{
-		delete [] m_candidateString;
-	}
+	delete [] m_candidateString;
 
 	detatch();
 	ImmAssociateContext( ApplicationHWnd, m_oldContext );
@@ -1133,7 +1130,7 @@ void IMEManager::updateCompositionString( void )
 				else
 				{
 					m_compositionCursorPos = (ImmGetCompositionString( m_context, GCS_CURSORPOS, NULL, 0) & 0xffff );
-					convRes = GameStrlen ( m_compositionString );
+					convRes = wcslen( m_compositionString );
 				}
 
 				// m_compositionCursorPos is in DBCS characters, need to convert it to Wide characters
@@ -1321,11 +1318,8 @@ void IMEManager::closeCandidateList( Int candidateFlags  )
 		TheWindowManager->winUnsetModal( m_candidateWindow );
 	}
 
-	if ( m_candidateString )
-	{
-		delete [] m_candidateString;
-		m_candidateString = NULL;
-	}
+	delete [] m_candidateString;
+	m_candidateString = NULL;
 
 	m_candidateCount = 0;
 
@@ -1338,11 +1332,8 @@ void IMEManager::closeCandidateList( Int candidateFlags  )
 void IMEManager::updateCandidateList( Int candidateFlags  )
 {
 
-	if ( m_candidateString )
-	{
-		delete [] m_candidateString;
-		m_candidateString = NULL;
-	}
+	delete [] m_candidateString;
+	m_candidateString = NULL;
 
 	m_pageSize = 10;
 	m_candidateCount = 0;

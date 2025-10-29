@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __CONNECTIONMANAGER_H
-#define __CONNECTIONMANAGER_H
-
 #include "GameNetwork/Connection.h"
 #include "GameNetwork/NetCommandList.h"
 #include "GameNetwork/Transport.h"
@@ -174,7 +171,7 @@ private:
 
 	//	void doPerFrameMetrics(UnsignedInt frame);
 	void getMinimumFps(Int &minFps, Int &minFpsPlayer);			///< Returns the smallest FPS in the m_fpsAverages list.
-	Real getMaximumLatency(); ///< This actually sums the two biggest latencies in the m_latencyAverages list.
+	Real getMaximumLatency(); ///< Returns the highest average latency between players.
 
 	void requestFrameDataResend(Int playerID, UnsignedInt frame); ///< request of this player that he send the specified frame's data.
 
@@ -217,5 +214,3 @@ private:
 	FileProgressMap s_fileProgressMap[MAX_SLOTS];
 	// -----------------------------------------------------------------------------
 };
-
-#endif

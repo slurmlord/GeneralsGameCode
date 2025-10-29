@@ -31,7 +31,6 @@
 #include "W3DDevice/GameClient/Module/W3DModelDraw.h"
 #include "agg_def.h"
 #include "part_ldr.h"
-#include "rendobj.h"
 #include "hanim.h"
 #include "dx8wrapper.h"
 #include "dx8indexbuffer.h"
@@ -78,6 +77,7 @@
 #include "WorldBuilder.h"
 #include "wbview3d.h"
 #include "Common/Debug.h"
+#include "Common/FramePacer.h"
 #include "Common/ThingFactory.h"
 #include "GameClient/Water.h"
 #include "Common/WellKnownKeys.h"
@@ -474,19 +474,16 @@ void WbView3d::shutdownWW3D(void)
 		WWMath::Shutdown();
 	}
 	m_ww3dInited = false;
-	if (m_intersector) {
-		delete m_intersector;
-		m_intersector = NULL;
-	}
 
-	if (m_layer) {
-		delete m_layer;
-		m_layer = NULL;
-	}
-	if (m_buildLayer) {
-		delete m_buildLayer;
-		m_buildLayer = NULL;
-	}
+	delete m_intersector;
+	m_intersector = NULL;
+
+	delete m_layer;
+	m_layer = NULL;
+
+	delete m_buildLayer;
+	m_buildLayer = NULL;
+
 	if (m3DFont) {
 		m3DFont->Release();
 		m3DFont = NULL;
@@ -1012,7 +1009,7 @@ void WbView3d::updateFenceListObjects(MapObject *pObject)
 
 				renderObj = m_assetManager->Create_Render_Obj( modelName.str(), scale, 0);
 
-			}  // end if
+			}
 		}
 
 		if (renderObj) {
@@ -1152,7 +1149,7 @@ void WbView3d::invalBuildListItemInView(BuildListInfo *pBuildToInval)
 						shadowInfo.m_offsetY=tTemplate->getShadowOffsetY();
 						shadowObj=TheW3DShadowManager->addShadow(renderObj, &shadowInfo);
 					}
-				}  // end if
+				}
 			}
 			if (renderObj) {
 				pBuild->setRenderObj(renderObj);
@@ -1426,7 +1423,7 @@ void WbView3d::invalObjectInView(MapObject *pMapObjIn)
 						shadowObj=TheW3DShadowManager->addShadow(renderObj, &shadowInfo);
 					}
 				}
-			}  // end if
+			}
 		}
 
 		if (renderObj && !(pMapObj->getFlags() & FLAG_DONT_RENDER)) {
@@ -1690,7 +1687,7 @@ Bool WbView3d::viewToDocCoords(CPoint curPt, Coord3D *newPt, Bool constrain)
 			intersection = castResult.ContactPoint;
 			m_curTrackingZ = intersection.Z;
 			result = true;
-		}  // end if
+		}
 	}
 	if (!result) {
 		intersection.X = Vector3::Find_X_At_Z(m_curTrackingZ, rayLocation, rayDirectionPt);
@@ -1984,12 +1981,18 @@ void WbView3d::redraw(void)
 			m_showPolygonTriggers || PolygonTool::isActive());
 	}
 
-	WW3D::Sync( GetTickCount() );
+	WW3D::Update_Logic_Frame_Time(TheFramePacer->getLogicTimeStepMilliseconds());
+	WW3D::Sync(WW3D::Get_Fractional_Sync_Milliseconds() >= WWSyncMilliseconds);
+
 	m_buildRedMultiplier += (GetTickCount()-m_time)/500.0f;
 	if (m_buildRedMultiplier>4.0f || m_buildRedMultiplier<0) {
 		m_buildRedMultiplier = 0;
 	}
+
 	render();
+
+	TheFramePacer->update();
+
 	m_time = ::GetTickCount();
 }
 
@@ -2430,7 +2433,7 @@ void WbView3d::drawLabels(HDC hdc)
 
 			if (m_lightFeedbackMesh[lIndex] == NULL)
 			{	char nameBuf[64];
-				sprintf(nameBuf,"WB_LIGHT%d",lIndex+1);
+				snprintf(nameBuf, ARRAY_SIZE(nameBuf), "WB_LIGHT%d", lIndex+1);
 				m_lightFeedbackMesh[lIndex]=WW3DAssetManager::Get_Instance()->Create_Render_Obj(nameBuf);
 			}
 			if (m_lightFeedbackMesh[lIndex]==NULL) {
@@ -2477,7 +2480,7 @@ void WbView3d::drawLabels(HDC hdc)
 				DeleteObject(pen);	//delete new pen
 			}
 #endif	//DRAW_LIGHT_DIRECTION_RAYS
-		}//end for
+		}
 	}
 	else
 	{	if (!m_doLightFeedback)

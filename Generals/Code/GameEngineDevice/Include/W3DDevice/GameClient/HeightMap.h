@@ -22,11 +22,7 @@
 //																																						//
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #pragma once
-
-#ifndef __HEIGHTMAP_H_
-#define __HEIGHTMAP_H_
 
 #include "always.h"
 #include "rendobj.h"
@@ -180,7 +176,6 @@ public:
 
 	void renderTerrainPass(CameraClass *pCamera);	///< renders additional terrain pass.
 	W3DShroud *getShroud()	{return m_shroud;}
-	void renderExtraBlendTiles(void);			///< render 3-way blend tiles that have blend of 3 textures.
 	void updateShorelineTiles(Int minX, Int minY, Int maxX, Int maxY, WorldHeightMap *pMap);	///<figure out which tiles on this map cross water plane
 	void updateViewImpassableAreas(Bool partial = FALSE, Int minX = 0, Int maxX = 0, Int minY = 0, Int maxY = 0);
 	void clearAllScorches(void);
@@ -320,7 +315,9 @@ protected:
 	AABoxClass & getTileBoundingBox(AABoxClass *aabox, Int x, Int y);	///<Vertex buffer bounding box
 	void initDestAlphaLUT(void);	///<initialize water depth LUT stored in m_destAlphaTexture
 	void renderShoreLines(CameraClass *pCamera);	///<re-render parts of terrain that need custom blending into water edge
+	void renderExtraBlendTiles(void);	///< render 3-way blend tiles that have blend of 3 textures.
+
+	static Bool useCloud();
 };
 
 extern HeightMapRenderObjClass *TheTerrainRenderObject;
-#endif  // end __HEIGHTMAP_H_

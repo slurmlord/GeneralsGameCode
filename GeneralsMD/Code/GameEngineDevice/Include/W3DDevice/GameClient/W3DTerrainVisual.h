@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __W3DTERRAINVISUAL_H_
-#define __W3DTERRAINVISUAL_H_
-
 #include "GameClient/TerrainVisual.h"
 #include "W3DDevice/GameClient/W3DWater.h"
 
@@ -197,6 +194,4 @@ protected:
 
 
 
-};  // end class W3DTerrainVisual
-
-#endif  // end __W3DTERRAINVISUAL_H_
+};

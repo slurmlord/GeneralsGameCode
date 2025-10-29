@@ -31,17 +31,10 @@
  *-------------------------------------------------------------------------*
  *	Functions:																					*
  *	- - -	- - -	- - -	- - -	- - -	- - -	- - -	- - -	- - -	- - -	- - -	- - -	*/
-#if _MSC_VER >= 1000
+
 #pragma once
-#endif // _MSC_VER >= 1000
 
-#ifndef __SLNODE_H__
-#define __SLNODE_H__
-
-#ifndef ALWAYS_H
 #include "always.h"
-#endif
-
 #include "mempool.h"
 
 #ifndef NULL
@@ -117,5 +110,3 @@ class	SLNode : public GenericSLNode
 	private:
 		SLNode(void) {};
 };
-
-#endif

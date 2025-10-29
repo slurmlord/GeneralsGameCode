@@ -94,30 +94,14 @@ NodeMotionStruct::NodeMotionStruct() :
  *=============================================================================================*/
 NodeMotionStruct::~NodeMotionStruct()
 {
-	if (X != NULL) {
-		delete X;
-	}
-	if (Y != NULL) {
-		delete Y;
-	}
-	if (Z != NULL) {
-		delete Z;
-	}
-	if (XR != NULL) {
-		delete XR;
-	}
-	if (YR != NULL) {
-		delete YR;
-	}
-	if (ZR != NULL) {
-		delete ZR;
-	}
-	if (Q != NULL) {
-		delete Q;
-	}
-	if (Vis != NULL) {
-		delete Vis;
-	}
+	delete X;
+	delete Y;
+	delete Z;
+	delete XR;
+	delete YR;
+	delete ZR;
+	delete Q;
+	delete Vis;
 }
 
 
@@ -176,10 +160,8 @@ HRawAnimClass::~HRawAnimClass(void)
  *=============================================================================================*/
 void HRawAnimClass::Free(void)
 {
-	if (NodeMotion != NULL) {
-		delete[] NodeMotion;
-		NodeMotion = NULL;
-	}
+	delete[] NodeMotion;
+	NodeMotion = NULL;
 }
 
 
@@ -230,14 +212,14 @@ int HRawAnimClass::Load_W3D(ChunkLoadClass & cload)
 	}
 
 	strcpy(Name,aheader.HierarchyName);
-	strcat(Name,".");
-	strcat(Name,aheader.Name);
+	strlcat(Name, ".", ARRAY_SIZE(Name));
+	strlcat(Name, aheader.Name, ARRAY_SIZE(Name));
 
 	// TSS chasing crash bug 05/26/99
    WWASSERT(HierarchyName != NULL);
    WWASSERT(aheader.HierarchyName != NULL);
    WWASSERT(sizeof(HierarchyName) >= W3D_NAME_LEN);
-   strncpy(HierarchyName,aheader.HierarchyName,W3D_NAME_LEN);
+   strlcpy(HierarchyName,aheader.HierarchyName,W3D_NAME_LEN);
 
 	HTreeClass * base_pose = WW3DAssetManager::Get_Instance()->Get_HTree(HierarchyName);
 	if (base_pose == NULL) {

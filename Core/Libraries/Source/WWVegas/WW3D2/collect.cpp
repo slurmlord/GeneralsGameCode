@@ -968,6 +968,7 @@ void CollectionDefClass::Free(void)
 	for (int i=0; i<ObjectNames.Count(); i++) {
 		delete[] ObjectNames[i];
 	}
+	ObjectNames.Delete_All ();
 
 	ProxyList.Delete_All ();
 }
@@ -1014,7 +1015,7 @@ WW3DErrorType CollectionDefClass::Load(ChunkLoadClass & cload)
 	if (cload.Read(&header,sizeof(header)) != sizeof(header)) goto Error;
 	if (!cload.Close_Chunk()) goto Error;
 
-	strncpy(Name,header.Name,W3D_NAME_LEN);
+	strlcpy(Name,header.Name,W3D_NAME_LEN);
 	ObjectNames.Resize(header.RenderObjectCount);
 
 	while (cload.Open_Chunk()) {

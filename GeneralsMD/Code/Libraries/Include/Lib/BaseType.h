@@ -26,11 +26,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // tell the compiler to only load this file once
+
 #pragma once
-
-
-#ifndef _BASE_TYPE_H_
-#define _BASE_TYPE_H_
 
 #include "Lib/BaseTypeCore.h"
 #include "Lib/trig.h"
@@ -216,7 +213,7 @@ inline Real Coord2D::toAngle( void ) const
 		c = 1.0f;
 
 	return y < 0.0f ? -ACos(c) : ACos(c);
-}  // end toAngle
+}
 
 struct ICoord2D
 {
@@ -405,5 +402,3 @@ struct RGBAColorInt
 	UnsignedInt red, green, blue, alpha;  // range between 0 and 255
 
 };
-
-#endif // _BASE_TYPE_H_

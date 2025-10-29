@@ -28,9 +28,6 @@
 
 #pragma once
 
-#ifndef _MESSAGE_STREAM_H_
-#define _MESSAGE_STREAM_H_
-
 #include "Common/GameCommon.h"	// ensure we get DUMP_PERF_STATS, or not
 #include "Common/SubsystemInterface.h"
 #include "Lib/BaseType.h"
@@ -247,6 +244,7 @@ public:
 		MSG_META_DECREASE_LOGIC_TIME_SCALE,					///< TheSuperHackers @feature Decrease the logic time scale
 		MSG_META_TOGGLE_LOWER_DETAILS,							///< toggles graphics options to crappy mode instantly
 		MSG_META_TOGGLE_CONTROL_BAR,								///< show/hide controlbar
+		MSG_META_TOGGLE_PLAYER_OBSERVER,						///< TheSuperHackers @feature Toggle the player observer view in game
 
 		MSG_META_BEGIN_PATH_BUILD,									///< enter path-building mode
 		MSG_META_END_PATH_BUILD,										///< exit path-building mode
@@ -273,8 +271,10 @@ public:
 		MSG_META_END_CAMERA_ZOOM_OUT,
 		MSG_META_CAMERA_RESET,
 		MSG_META_TOGGLE_FAST_FORWARD_REPLAY,				///< Toggle the fast forward feature
-		MSG_META_TOGGLE_PAUSE,											///< TheSuperHackers @feature Toggle game pause (in replay playbacks)
-		MSG_META_STEP_FRAME,												///< TheSuperHackers @feature Step one frame (in replay playbacks)
+		MSG_META_TOGGLE_PAUSE,											///< TheSuperHackers @feature Toggle game pause
+		MSG_META_TOGGLE_PAUSE_ALT,									///< TheSuperHackers @feature Toggle game pause (alternative mapping)
+		MSG_META_STEP_FRAME,												///< TheSuperHackers @feature Step one frame
+		MSG_META_STEP_FRAME_ALT,										///< TheSuperHackers @feature Step one frame (alternative mapping)
 
 
 		// META items that are really for debug/demo/development use only...
@@ -804,5 +804,3 @@ extern CommandList *TheCommandList;
  * construct a valid 2D bounding region.
  */
 extern void buildRegion( const ICoord2D *anchor, const ICoord2D *dest, IRegion2D *region );
-
-#endif // _MESSAGE_STREAM_H_

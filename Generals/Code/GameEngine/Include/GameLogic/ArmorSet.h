@@ -26,9 +26,6 @@
 
 #pragma once
 
-#ifndef _ArmorSet_H_
-#define _ArmorSet_H_
-
 #include "Lib/BaseType.h"
 #include "Common/GameType.h"
 #include "Common/SparseMatchFinder.h"
@@ -52,7 +49,7 @@ enum ArmorSetType CPP_11(: Int)
 	ARMORSET_PLAYER_UPGRADE = 3,
 	ARMORSET_WEAK_VERSUS_BASEDEFENSES = 4,
 
-	ARMORSET_COUNT			///< keep last, please
+	ARMORSET_COUNT
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -93,5 +90,3 @@ public:
 
 //-------------------------------------------------------------------------------------------------
 typedef std::vector<ArmorTemplateSet> ArmorTemplateSetVector;
-
-#endif	// _ArmorSet_H_

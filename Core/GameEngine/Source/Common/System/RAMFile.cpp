@@ -47,10 +47,8 @@
 
 #include "PreRTS.h"
 
-#include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
-#include <string.h>
 #include <sys/stat.h>
 
 #include "Common/AsciiString.h"
@@ -216,10 +214,7 @@ Bool RAMFile::openFromArchive(File *archiveFile, const AsciiString& filename, In
 		return FALSE;
 	}
 
-	if (m_data != NULL) {
-		delete[] m_data;
-		m_data = NULL;
-	}
+	delete[] m_data;
 	m_data = MSGNEW("RAMFILE") Char [size];	// pool[]ify
 	m_size = size;
 

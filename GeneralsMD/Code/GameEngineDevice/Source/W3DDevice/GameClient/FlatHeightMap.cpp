@@ -47,9 +47,7 @@
 //-----------------------------------------------------------------------------
 #include "W3DDevice/GameClient/FlatHeightMap.h"
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <assetmgr.h>
 #include <texture.h>
 #include <tri.h>
@@ -275,10 +273,9 @@ void FlatHeightMapRenderObjClass::doPartialUpdate(const IRegion2D &partialRange,
 //=============================================================================
 void FlatHeightMapRenderObjClass::releaseTiles(void)
 {
-	if (m_tiles) {
-		delete [] m_tiles;
-		m_tiles = NULL;
-	}
+	delete [] m_tiles;
+	m_tiles = NULL;
+
 	m_tilesWidth = 0;
 	m_tilesHeight = 0;
 	m_numTiles = 0;
@@ -460,7 +457,14 @@ void FlatHeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 
 	Int devicePasses;
 	W3DShaderManager::ShaderTypes st;
-	Bool doCloud = TheGlobalData->m_useCloudMap;
+	const Bool doCloud = useCloud();
+
+	if (doCloud)
+	{
+		// TheSuperHackers @tweak Updates the cloud movement before applying it to the world.
+		// Is now decoupled from logic step.
+		W3DShaderManager::updateCloud();
+	}
 
 	Matrix3D tm(Transform);
 	// If there are trees, tell them to draw at the transparent time to draw.
@@ -494,10 +498,6 @@ void FlatHeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 
 	DX8Wrapper::Set_Material(m_vertexMaterialClass);
 	DX8Wrapper::Set_Shader(m_shaderClass);
-
-	if (TheGlobalData->m_timeOfDay == TIME_OF_DAY_NIGHT) {
-		doCloud = false;
-	}
 
  	st=W3DShaderManager::ST_FLAT_TERRAIN_BASE; //set default shader
 

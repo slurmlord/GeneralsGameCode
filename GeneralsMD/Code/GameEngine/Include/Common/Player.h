@@ -44,9 +44,6 @@
 
 #pragma once
 
-#ifndef _PLAYER_H_
-#define _PLAYER_H_
-
 #include "Common/AcademyStats.h"
 #include "Common/Debug.h"
 #include "Common/Energy.h"
@@ -101,13 +98,14 @@ enum ScienceAvailabilityType CPP_11(: Int)
 };
 
 #ifdef DEFINE_SCIENCE_AVAILABILITY_NAMES
-static const char *ScienceAvailabilityNames[] =
+static const char *const ScienceAvailabilityNames[] =
 {
 	"Available",
 	"Disabled",
 	"Hidden",
 	NULL
 };
+static_assert(ARRAY_SIZE(ScienceAvailabilityNames) == SCIENCE_AVAILABILITY_COUNT + 1, "Incorrect array size");
 #endif	// end DEFINE_SCIENCE_AVAILABILITY_NAMES
 
 static const Int NUM_HOTKEY_SQUADS = 10;
@@ -831,5 +829,3 @@ private:
 	Bool									m_isPlayerDead;
 	Bool									m_logicalRetaliationModeEnabled;
 };
-
-#endif // _PLAYER_H_

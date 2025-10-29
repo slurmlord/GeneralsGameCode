@@ -34,6 +34,7 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "Common/GameState.h"
+#include "Common/GameUtility.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/Radar.h"
@@ -218,7 +219,7 @@ void StealthUpdate::hintDetectableWhileUnstealthed()
 
 	if( self && md->m_hintDetectableStates.testForAny( self->getStatusBits() ) )
 	{
-		if ( self->getControllingPlayer() == ThePlayerList->getLocalPlayer() )
+		if ( self->getControllingPlayer() == rts::getObservedOrLocalPlayer() )
 		{
 			Drawable *selfDraw = self->getDrawable();
 			if ( selfDraw )
@@ -365,7 +366,7 @@ UpdateSleepTime StealthUpdate::update( void )
 		if( wasHidden && draw )
 			draw->setDrawableHidden( TRUE );
 
-	}  // end if
+	}
 
 	Object *self = getObject();
 	UnsignedInt now = TheGameLogic->getFrame();
@@ -556,7 +557,7 @@ UpdateSleepTime StealthUpdate::update( void )
 
 	if (draw)
 	{
-		StealthLookType stealthLook = calcStealthedStatusForPlayer( self, ThePlayerList->getLocalPlayer() );
+		StealthLookType stealthLook = calcStealthedStatusForPlayer( self, rts::getObservedOrLocalPlayer() );
 		draw->setStealthLook( stealthLook );
 	}
 
@@ -828,7 +829,7 @@ void StealthUpdate::crc( Xfer *xfer )
 	// extend base class
 	UpdateModule::crc( xfer );
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
@@ -881,11 +882,11 @@ void StealthUpdate::xfer( Xfer *xfer )
 				DEBUG_CRASH(( "StealthUpdate::xfer - Unknown template '%s'", name.str() ));
 				throw SC_INVALID_DATA;
 
-			}  // end if
+			}
 
-		}  // end if
+		}
 
-	}  // end if
+	}
 
 	// disguise transition frames
 	xfer->xferUnsignedInt( &m_disguiseTransitionFrames );
@@ -899,7 +900,7 @@ void StealthUpdate::xfer( Xfer *xfer )
 	// disguised
 	xfer->xferBool( &m_disguised );
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -920,4 +921,4 @@ void StealthUpdate::loadPostProcess( void )
 	if( isDisguised() )
 		m_xferRestoreDisguise = TRUE;
 
-}  // end loadPostProcess
+}

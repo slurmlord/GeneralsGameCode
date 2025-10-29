@@ -20,7 +20,6 @@
 // Compress interface for packets and files
 // Author: Jeff Brown, January 1999
 
-#include <stdio.h>
 #include <stdlib.h>
 #include "Lib/BaseTypeCore.h"
 #include "NoxCompress.h"
@@ -114,7 +113,7 @@ Bool DecompressFile		(char *infile, char *outfile)
 		DbgFree(inBlock);
 		DbgFree(outBlock);
 		return success;
-	} // End of if fileptr
+	}
 
 	return FALSE;
 }

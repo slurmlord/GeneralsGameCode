@@ -38,13 +38,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-#if defined(_MSC_VER)
 #pragma once
-#endif
-
-#ifndef RENDOBJ_H
-#define RENDOBJ_H
 
 #include "always.h"
 #include "refcount.h"
@@ -84,20 +78,6 @@ template<class T> class DynamicVectorClass;
 
 // "unreferenced formal parameter"
 #pragma warning(disable : 4100)
-
-#ifdef DEFINE_W3DANIMMODE_NAMES
-static const char* TheAnimModeNames[] =
-{
-	"MANUAL",
-	"LOOP",
-	"ONCE",
-	"LOOP_PINGPONG",
-	"LOOP_BACKWARDS",
-	"ONCE_BACKWARDS",
-	NULL
-};
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////////
 // RenderObjClass
@@ -279,7 +259,7 @@ public:
 	// as small as possible
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	virtual void					Add(SceneClass * scene);
-	virtual void					Remove(void);
+	virtual bool					Remove(void);
 	virtual SceneClass *			Get_Scene(void);
 	virtual SceneClass *			Peek_Scene(void)																{ return Scene; }
 	virtual void					Set_Container(RenderObjClass * con);
@@ -336,6 +316,8 @@ public:
 		ANIM_MODE_LOOP_PINGPONG,
 		ANIM_MODE_LOOP_BACKWARDS,	//make sure only backwards playing animations after this one
 		ANIM_MODE_ONCE_BACKWARDS,
+
+		ANIM_MODE_COUNT
 	};
 
 	virtual void					Set_Animation( void )														{ }
@@ -653,6 +635,16 @@ WWINLINE bool RenderObjClass::Is_Transform_Identity_No_Validity_Check() const
 }
 
 
-
-
+#ifdef DEFINE_W3DANIMMODE_NAMES
+static const char* const TheAnimModeNames[] =
+{
+	"MANUAL",
+	"LOOP",
+	"ONCE",
+	"LOOP_PINGPONG",
+	"LOOP_BACKWARDS",
+	"ONCE_BACKWARDS",
+	NULL
+};
+static_assert(ARRAY_SIZE(TheAnimModeNames) == RenderObjClass::ANIM_MODE_COUNT + 1, "Incorrect array size");
 #endif

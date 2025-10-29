@@ -95,8 +95,7 @@ static UnsignedInt calcCRC( AsciiString dirName, AsciiString fname )
 	length = strlen( tempBuf );
 	if( length >= 4 )
 	{
-		memset( filenameBuf, '\0', _MAX_PATH);
-		strncpy( filenameBuf, tempBuf, length - 4);
+		strlcpy( filenameBuf, tempBuf, length - 4 + 1);
 	}
 
 	File *fp;
@@ -242,8 +241,7 @@ static Bool loadMap( AsciiString filename )
 	length = strlen( tempBuf );
 	if( length >= 4 )
 	{
-		memset( filenameBuf, '\0', _MAX_PATH);
-		strncpy( filenameBuf, tempBuf, length - 4);
+		strlcpy( filenameBuf, tempBuf, length - 4 + 1);
 	}
 
 	CachedFileInputStream fileStrm;
@@ -275,17 +273,12 @@ static Bool loadMap( AsciiString filename )
 
 static void resetMap( void )
 {
-	if (m_data)
-	{
-		delete[] m_data;
-		m_data = 0;
-	}
+	delete[] m_data;
+	m_data = NULL;
 
-	if (m_waypoints)
-	{
-		delete m_waypoints;
-		m_waypoints = 0;
-	}
+	delete m_waypoints;
+	m_waypoints = NULL;
+
 	m_techPositions.clear();
 	m_supplyPositions.clear();
 }
@@ -907,11 +900,8 @@ typedef MapDisplayToFileNameList::iterator MapDisplayToFileNameListIter;
 		++curNumPlayersInMap;
 	}
 
-	if (battleHonors)
-	{
-		delete battleHonors;
-		battleHonors = NULL;
-	}
+	delete battleHonors;
+	battleHonors = NULL;
 
 	GadgetListBoxSetSelected(listbox, &selectionIndex, 1);
 	if (selectionIndex >= 0)
@@ -929,7 +919,7 @@ typedef MapDisplayToFileNameList::iterator MapDisplayToFileNameListIter;
 	}
 	return selectionIndex;
 
-}  // end loadMapListbox
+}
 
 //-------------------------------------------------------------------------------------------------
 /** Load the listbox with all the map files available to play */
@@ -970,7 +960,7 @@ Bool isValidMap( AsciiString mapName, Bool isMultiplayer )
 	}
 
 	return FALSE;
-}  // end isValidMap
+}
 
 //-------------------------------------------------------------------------------------------------
 /** Find a valid map */
@@ -992,7 +982,7 @@ AsciiString getDefaultMap( Bool isMultiplayer )
 	}
 
 	return AsciiString::TheEmptyString;
-}  // end isValidMap
+}
 
 const MapMetaData *MapCache::findMap(AsciiString mapName)
 {
@@ -1015,7 +1005,7 @@ static void copyFromBigToDir( const AsciiString& infile, const AsciiString& outf
 	{
 		DEBUG_CRASH(( "copyFromBigToDir - Error opening source file '%s'", infile.str() ));
 		throw SC_INVALID_DATA;
-	} // end if
+	}
 
 	// how big is the map file
 	Int fileSize = file->seek( 0, File::END );
@@ -1030,14 +1020,14 @@ static void copyFromBigToDir( const AsciiString& infile, const AsciiString& outf
 	{
 		DEBUG_CRASH(( "copyFromBigToDir - Unable to allocate buffer for file '%s'", infile.str() ));
 		throw SC_INVALID_DATA;
-	} // end if
+	}
 
 	// copy the file to the buffer
 	if( file->read( buffer, fileSize ) < fileSize )
 	{
 		DEBUG_CRASH(( "copyFromBigToDir - Error reading from file '%s'", infile.str() ));
 		throw SC_INVALID_DATA;
-	} // end if
+	}
 	// close the BIG file
 	file->close();
 
@@ -1047,13 +1037,13 @@ static void copyFromBigToDir( const AsciiString& infile, const AsciiString& outf
 	{
 		DEBUG_CRASH(( "copyFromBigToDir - Error writing to file '%s'", outfile.str() ));
 		throw SC_INVALID_DATA;
-	} // end if
+	}
 
 	filenew->close();
 
 	// delete the buffer
 	delete [] buffer;
-} // end embedPristineMap
+}
 
 Image *getMapPreviewImage( AsciiString mapName )
 {
@@ -1263,5 +1253,5 @@ void findDrawPositions( Int startX, Int startY, Int width, Int height, Region3D 
 	lr->x += startX;
 	lr->y += startY;
 
-}  // end findDrawPositions
+}
 

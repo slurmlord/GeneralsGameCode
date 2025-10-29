@@ -28,9 +28,6 @@
 
 #pragma once
 
-#ifndef __PEERDEFS_H__
-#define __PEERDEFS_H__
-
 #include "gamespy/peer/peer.h"
 #include "gamespy/gp/gp.h"
 
@@ -168,7 +165,6 @@ enum GameSpyBuddyStatus CPP_11(: Int) {
 	BUDDY_LOADING,
 	BUDDY_PLAYING,
 	BUDDY_MATCHING,
-	BUDDY_MAX
 };
 
 // ---------------------------------------------------
@@ -299,5 +295,3 @@ extern Int GetAdditionalDisconnectsFromUserFile(Int playerID);
 
 void SetUpGameSpy( const char *motdBuffer, const char *configBuffer );
 void TearDownGameSpy( void );
-
-#endif // __PEERDEFS_H__

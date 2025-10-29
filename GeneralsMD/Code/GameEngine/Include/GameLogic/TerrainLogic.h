@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __TERRAINLOGIC_H_
-#define __TERRAINLOGIC_H_
-
 #include "Common/GameMemory.h"
 #include "Common/Snapshot.h"
 #include "Common/STLTypedefs.h"
@@ -373,11 +370,10 @@ protected:
 	} m_waterToUpdate[ MAX_DYNAMIC_WATER ];  ///< water tables to dynamicall update
 	Int m_numWaterToUpdate;						///< how many valid entries are in m_waterToUpdate
 
-};  // end class TerrainLogic
+};
 
 // EXTERNALS //////////////////////////////////////////////////////////////////////////////////////
 extern TerrainLogic *TheTerrainLogic;   ///< singleton definition
 
 extern void makeAlignToNormalMatrix( Real angle, const Coord3D& pos, const Coord3D& normal, Matrix3D& mtx);
 extern Bool LineInRegion( const Coord2D *p1, const Coord2D *p2, const Region2D *clipRegion );
-#endif  // end __TERRAINLOGIC_H_

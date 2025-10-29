@@ -88,7 +88,6 @@
 
 #include "mesh.h"
 #include <assert.h>
-#include <string.h>
 #include "w3d_file.h"
 #include "assetmgr.h"
 #include "w3derr.h"
@@ -119,7 +118,6 @@
 #include "visrasterizer.h"
 #include "wwmemlog.h"
 #include "dx8rendererdebugger.h"
-#include <stdio.h>
 #include <wwprofile.h>
 
 static unsigned MeshDebugIdCount;

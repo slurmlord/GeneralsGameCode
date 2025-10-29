@@ -197,10 +197,8 @@ CW3DViewDoc::CleanupResources (void)
     }
 
 	 // Was there a dazzle layer?
-	 if (m_pDazzleLayer) {
-		 delete m_pDazzleLayer;
-		 m_pDazzleLayer = NULL;
-	 }
+	 delete m_pDazzleLayer;
+	 m_pDazzleLayer = NULL;
 
     // Was there a valid scene object?
     if (m_pCBackObjectScene)
@@ -1534,7 +1532,7 @@ CW3DViewDoc::SaveSettings
             if (szPath[::lstrlen (szPath)-1] != '\\')
             {
                 // Ensure the path is directory delimited
-                ::strcat (szPath, "\\");
+                strlcat(szPath, "\\", ARRAY_SIZE(szPath));
             }
 
             // Prepend the filename with its new path

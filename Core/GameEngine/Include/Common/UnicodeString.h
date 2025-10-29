@@ -45,12 +45,7 @@
 
 #pragma once
 
-#ifndef UNICODESTRING_H
-#define UNICODESTRING_H
-
 #include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 #include "Lib/BaseType.h"
 #include "Common/Debug.h"
 #include "Common/Errors.h"
@@ -515,5 +510,3 @@ inline Bool operator>=(const UnicodeString& s1, const UnicodeString& s2)
 {
 	return wcscmp(s1.str(), s2.str()) >= 0;
 }
-
-#endif // UNICODESTRING_H

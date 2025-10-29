@@ -62,9 +62,8 @@ void LANAPI::handleRequestLocations( LANMessage *msg, UnsignedInt senderIP )
 				fillInLANMessage( &reply );
 				reply.LANMessageType = LANMessage::MSG_GAME_ANNOUNCE;
 				AsciiString gameOpts = GenerateGameOptionsString();
-				strncpy(reply.GameInfo.options,gameOpts.str(),ARRAY_SIZE(reply.GameInfo.options));
-				wcsncpy(reply.GameInfo.gameName, m_currentGame->getName().str(), g_lanGameNameLength);
-				reply.GameInfo.gameName[g_lanGameNameLength] = 0;
+				strlcpy(reply.GameInfo.options,gameOpts.str(), ARRAY_SIZE(reply.GameInfo.options));
+				wcslcpy(reply.GameInfo.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameInfo.gameName));
 				reply.GameInfo.inProgress = m_currentGame->isGameInProgress();
 
 				sendMessage(&reply);
@@ -127,7 +126,6 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 				// remove from list
 				removeGame(game);
 				delete game;
-				game = NULL;
 				return;
 			}
 			RequestGameJoin(game, m_directConnectRemoteIP);
@@ -194,9 +192,8 @@ void LANAPI::handleRequestGameInfo( LANMessage *msg, UnsignedInt senderIP )
 			reply.LANMessageType = LANMessage::MSG_GAME_ANNOUNCE;
 
 			AsciiString gameOpts = GameInfoToAsciiString(m_currentGame);
-			strncpy(reply.GameInfo.options,gameOpts.str(),ARRAY_SIZE(reply.GameInfo.options));
-			wcsncpy(reply.GameInfo.gameName, m_currentGame->getName().str(), g_lanGameNameLength);
-			reply.GameInfo.gameName[g_lanGameNameLength] = 0;
+			strlcpy(reply.GameInfo.options,gameOpts.str(), ARRAY_SIZE(reply.GameInfo.options));
+			wcslcpy(reply.GameInfo.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameInfo.gameName));
 			reply.GameInfo.inProgress = m_currentGame->isGameInProgress();
 			reply.GameInfo.isDirectConnect = m_currentGame->getIsDirectConnect();
 
@@ -309,60 +306,38 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 				}
 			}
 
-			// See if there's room
-			// First get the number of players currently in the room.
-			Int numPlayers = 0;
-			for (player = 0; player < MAX_SLOTS; ++player)
+			// TheSuperHackers @bugfix Stubbjax 26/09/2025 Players can now join open slots regardless of starting spots on the map.
+			for (player = 0; canJoin && player<MAX_SLOTS; ++player)
 			{
-				if (m_currentGame->getLANSlot(player)->isOccupied()
-					&& !(m_currentGame->getLANSlot(player)->getPlayerTemplate() == PLAYERTEMPLATE_OBSERVER))
+				if (m_currentGame->getLANSlot(player)->isOpen())
 				{
-					++numPlayers;
+					// OK, add him in.
+					reply.LANMessageType = LANMessage::MSG_JOIN_ACCEPT;
+					wcslcpy(reply.GameJoined.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameJoined.gameName));
+					reply.GameJoined.slotPosition = player;
+					reply.GameJoined.gameIP = m_localIP;
+					reply.GameJoined.playerIP = senderIP;
+
+					LANGameSlot newSlot;
+					newSlot.setState(SLOT_PLAYER, UnicodeString(msg->name));
+					newSlot.setIP(senderIP);
+					newSlot.setPort(NETWORK_BASE_PORT_NUMBER);
+					newSlot.setLastHeard(timeGetTime());
+					newSlot.setSerial(msg->GameToJoin.serial);
+					m_currentGame->setSlot(player,newSlot);
+					DEBUG_LOG(("LANAPI::handleRequestJoin - added player %ls at ip 0x%08x to the game", msg->name, senderIP));
+
+					OnPlayerJoin(player, UnicodeString(msg->name));
+					responseIP = 0;
+
+					break;
 				}
 			}
 
-			// now get the number of starting spots on the map.
-			Int numStartingSpots = MAX_SLOTS;
-			const MapMetaData *md = TheMapCache->findMap(m_currentGame->getMap());
-			if (md != NULL)
-			{
-				numStartingSpots = md->m_numPlayers;
-			}
-
-			if (numPlayers < numStartingSpots) {
-				for (player = 0; canJoin && player<MAX_SLOTS; ++player)
-				{
-					if (m_currentGame->getLANSlot(player)->isOpen())
-					{
-						// OK, add him in.
-						reply.LANMessageType = LANMessage::MSG_JOIN_ACCEPT;
-						wcsncpy(reply.GameJoined.gameName, m_currentGame->getName().str(), g_lanGameNameLength);
-						reply.GameJoined.gameName[g_lanGameNameLength] = 0;
-						reply.GameJoined.slotPosition = player;
-						reply.GameJoined.gameIP = m_localIP;
-						reply.GameJoined.playerIP = senderIP;
-
-						LANGameSlot newSlot;
-						newSlot.setState(SLOT_PLAYER, UnicodeString(msg->name));
-						newSlot.setIP(senderIP);
-						newSlot.setPort(NETWORK_BASE_PORT_NUMBER);
-						newSlot.setLastHeard(timeGetTime());
-						newSlot.setSerial(msg->GameToJoin.serial);
-						m_currentGame->setSlot(player,newSlot);
-						DEBUG_LOG(("LANAPI::handleRequestJoin - added player %ls at ip 0x%08x to the game", msg->name, senderIP));
-
-						OnPlayerJoin(player, UnicodeString(msg->name));
-						responseIP = 0;
-
-						break;
-					}
-				}
-			}
 			if (canJoin && player == MAX_SLOTS)
 			{
 				reply.LANMessageType = LANMessage::MSG_JOIN_DENY;
-				wcsncpy(reply.GameNotJoined.gameName, m_currentGame->getName().str(), g_lanGameNameLength);
-				reply.GameNotJoined.gameName[g_lanGameNameLength] = 0;
+				wcslcpy(reply.GameNotJoined.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameNotJoined.gameName));
 				reply.GameNotJoined.reason = LANAPIInterface::RET_GAME_FULL;
 				reply.GameNotJoined.gameIP = m_localIP;
 				reply.GameNotJoined.playerIP = senderIP;

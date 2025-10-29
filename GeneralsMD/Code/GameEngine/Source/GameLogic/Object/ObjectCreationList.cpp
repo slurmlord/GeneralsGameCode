@@ -702,7 +702,7 @@ enum DebrisDisposition CPP_11(: Int)
 	WHIRLING								= 0x00000100
 };
 
-static const char* DebrisDispositionNames[] =
+static const char* const DebrisDispositionNames[] =
 {
 	"LIKE_EXISTING",
 	"ON_GROUND_ALIGNED",
@@ -713,6 +713,7 @@ static const char* DebrisDispositionNames[] =
 	"FLOATING",
 	"INHERIT_VELOCITY",
 	"WHIRLING",
+	NULL
 };
 
 std::vector<AsciiString>	debrisModelNamesGlobalHack;
@@ -1420,6 +1421,11 @@ protected:
 			}
 		}
 
+#if !RETAIL_COMPATIBLE_CRC && !RETAIL_COMPATIBLE_BUG
+		ObjectID sinkID = sourceObj->getExperienceTracker()->getExperienceSink();
+		firstObject->getExperienceTracker()->setExperienceSink(sinkID != INVALID_ID ? sinkID : sourceObj->getID());
+#endif
+
 		if (container)
 			doStuffToObj( container, AsciiString::TheEmptyString, pos, mtx, orientation, sourceObj, lifetimeFrames );
 
@@ -1507,7 +1513,7 @@ static const FieldParse TheObjectCreationListFieldParse[] =
 	{ "DeliverPayload",		DeliverPayloadNugget::parse, 0, 0},
 	{ "FireWeapon",				FireWeaponNugget::parse, 0, 0},
 	{ "Attack",						AttackNugget::parse, 0, 0},
-	{ NULL, NULL, 0, 0 }  // keep this last
+	{ NULL, NULL, 0, 0 }
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -1583,8 +1589,7 @@ ObjectCreationListStore::~ObjectCreationListStore()
 {
 	for (ObjectCreationNuggetVector::iterator i = m_nuggets.begin(); i != m_nuggets.end(); ++i)
 	{
-		if (*i)
-			deleteInstance(*i);
+		deleteInstance(*i);
 	}
 	m_nuggets.clear();
 }

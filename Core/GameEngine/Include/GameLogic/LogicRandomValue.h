@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef _LOGIC_RANDOM_VALUE_H_
-#define _LOGIC_RANDOM_VALUE_H_
-
 #include "Lib/BaseType.h"
 
 // do NOT use these functions directly, rather use the macros below
@@ -68,10 +65,11 @@ public:
 	 */
 	enum DistributionType
 	{
-		CONSTANT, UNIFORM, GAUSSIAN, TRIANGULAR, LOW_BIAS, HIGH_BIAS
+		CONSTANT, UNIFORM, GAUSSIAN, TRIANGULAR, LOW_BIAS, HIGH_BIAS,
+		DISTRIBUTION_COUNT
 	};
 
-	static const char *DistributionTypeNames[];
+	static const char *const DistributionTypeNames[];
 
 	/// define the range of random values, and the distribution of values
 	void setRange( Real low, Real high, DistributionType type = UNIFORM );
@@ -91,5 +89,3 @@ protected:
 };
 
 //--------------------------------------------------------------------------------------------------------------
-
-#endif // _LOGIC_RANDOM_VALUE_H_

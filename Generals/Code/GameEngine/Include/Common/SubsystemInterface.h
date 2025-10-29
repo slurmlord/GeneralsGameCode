@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __SUBSYSTEMINTERFACE_H_
-#define __SUBSYSTEMINTERFACE_H_
-
 #include "Common/INI.h"
 #include "Common/STLTypedefs.h"
 
@@ -136,7 +133,7 @@ public:
 	AsciiString getName(void) {return m_name;}
 	void setName(AsciiString name) {m_name = name;}
 
-};  // end SubsystemInterface
+};
 
 //-------------------------------------------------------------------------------------------------
 class SubsystemInterfaceList
@@ -165,6 +162,3 @@ private:
 };
 
 extern SubsystemInterfaceList* TheSubsystemList;
-
-#endif // __SUBSYSTEMINTERFACE_H_
-

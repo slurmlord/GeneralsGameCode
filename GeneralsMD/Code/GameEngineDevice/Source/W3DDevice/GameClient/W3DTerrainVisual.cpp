@@ -27,7 +27,6 @@
 // Author: Colin Day, April 2001
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
 
@@ -180,7 +179,7 @@ W3DTerrainVisual::W3DTerrainVisual()
 
 
 
-}  // end W3DTerrainVisual
+}
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -191,23 +190,14 @@ W3DTerrainVisual::~W3DTerrainVisual()
 		TheTerrainRenderObject = NULL;
 	}
 
-	if (TheTerrainTracksRenderObjClassSystem)
-	{
-		delete TheTerrainTracksRenderObjClassSystem;
-		TheTerrainTracksRenderObjClassSystem=NULL;
-	}
+	delete TheTerrainTracksRenderObjClassSystem;
+	TheTerrainTracksRenderObjClassSystem=NULL;
 
-	if (TheW3DShadowManager)
-	{
-		delete TheW3DShadowManager;
-		TheW3DShadowManager=NULL;
-	}
+	delete TheW3DShadowManager;
+	TheW3DShadowManager=NULL;
 
-	if (TheSmudgeManager)
-	{
-		delete TheSmudgeManager;
-		TheSmudgeManager=NULL;
-	}
+	delete TheSmudgeManager;
+	TheSmudgeManager=NULL;
 
 	REF_PTR_RELEASE( m_waterRenderObject );
 	TheWaterRenderObj=NULL;
@@ -217,7 +207,7 @@ W3DTerrainVisual::~W3DTerrainVisual()
 #ifdef DO_SEISMIC_SIMULATIONS
   REF_PTR_RELEASE( m_clientHeightMap );
 #endif
-}  // end ~W3DTerrainVisual
+}
 
 //-------------------------------------------------------------------------------------------------
 /** init */
@@ -294,7 +284,7 @@ void W3DTerrainVisual::init( void )
   m_seismicSimulationList.clear();
 #endif
 
-}  // end init
+}
 
 //-------------------------------------------------------------------------------------------------
 /** reset */
@@ -336,7 +326,7 @@ void W3DTerrainVisual::reset( void )
   m_seismicSimulationList.clear();
 #endif
 
-}  // end reset
+}
 
 //-------------------------------------------------------------------------------------------------
 /** update */
@@ -355,7 +345,7 @@ void W3DTerrainVisual::update( void )
 		m_waterRenderObject->update();
 
 
-}  // end update
+}
 
 
 #ifdef DO_SEISMIC_SIMULATIONS
@@ -571,7 +561,7 @@ Bool W3DTerrainVisual::load( AsciiString filename )
 		REF_PTR_RELEASE( m_terrainRenderObject );
 		return FALSE;
 
-	}  // end if
+	}
 
 	if( m_terrainRenderObject == NULL )
 		return FALSE;
@@ -704,7 +694,7 @@ Bool W3DTerrainVisual::load( AsciiString filename )
 
 	return TRUE;  // success
 
-}  // end load
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -718,7 +708,7 @@ void W3DTerrainVisual::enableWaterGrid( Bool enable )
 	if( m_waterRenderObject )
 		m_waterRenderObject->enableWaterGrid( enable );
 
-}  // end enableWaterGrid
+}
 
 //-------------------------------------------------------------------------------------------------
 /** intersect the ray with the terrain, if a hit occurs TRUE is returned
@@ -750,14 +740,14 @@ Bool W3DTerrainVisual::intersectTerrain( Coord3D *rayStart,
 			result->y = point.Y;
 			result->z = point.Z;
 
-		}  // end if
+		}
 
-	}  // end if
+	}
 
 	// return hit result
 	return hit;
 
-}  // end intersectTerrain
+}
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -772,7 +762,7 @@ void W3DTerrainVisual::getTerrainColorAt( Real x, Real y, RGBColor *pColor )
 		m_logicHeightMap->getTerrainColorAt( x, y, pColor );
 #endif
 
-}  // end getTerrainColorAt
+}
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -786,13 +776,13 @@ TerrainType *W3DTerrainVisual::getTerrainTile( Real x, Real y )
 	{
 		AsciiString tileName = m_clientHeightMap->getTerrainNameAt( x, y );
 		tile = TheTerrainTypes->findTerrain( tileName );
-	}  // end if
+	}
 #else
   if( m_logicHeightMap )
 	{
 		AsciiString tileName = m_logicHeightMap->getTerrainNameAt( x, y );
 		tile = TheTerrainTypes->findTerrain( tileName );
-	}  // end if
+	}
 #endif
 
 
@@ -800,7 +790,7 @@ TerrainType *W3DTerrainVisual::getTerrainTile( Real x, Real y )
 
 	return tile;
 
-}  // end getTerrainTile
+}
 
 // ------------------------------------------------------------------------------------------------
 /** set min/max height values allowed in water grid pointed to by waterTable */
@@ -812,7 +802,7 @@ void W3DTerrainVisual::setWaterGridHeightClamps( const WaterHandle *waterTable,
 	if( m_waterRenderObject )
 		m_waterRenderObject->setGridHeightClamps( minZ, maxZ );
 
-}  // end setWaterGridHeightClamps
+}
 
 // ------------------------------------------------------------------------------------------------
 /** adjust fallof parameters for grid change method */
@@ -824,7 +814,7 @@ void W3DTerrainVisual::setWaterAttenuationFactors( const WaterHandle *waterTable
 	if( m_waterRenderObject )
 		m_waterRenderObject->setGridChangeAttenuationFactors( a, b, c, range );
 
-}  // end setWaterAttenuationFactors
+}
 
 // ------------------------------------------------------------------------------------------------
 /** set the water table position and orientation in world space */
@@ -836,7 +826,7 @@ void W3DTerrainVisual::setWaterTransform( const WaterHandle *waterTable,
 	if( m_waterRenderObject )
 		m_waterRenderObject->setGridTransform( angle, x, y, z );
 
-}  // end setWaterTransform
+}
 
 // ------------------------------------------------------------------------------------------------
 /** set water table transform by matrix */
@@ -847,7 +837,7 @@ void W3DTerrainVisual::setWaterTransform( const Matrix3D *transform )
 	if( m_waterRenderObject )
 		m_waterRenderObject->setGridTransform( transform );
 
-}  // end setWaterTransform
+}
 
 // ------------------------------------------------------------------------------------------------
 /** get the water transform matrix */
@@ -858,7 +848,7 @@ void W3DTerrainVisual::getWaterTransform( const WaterHandle *waterTable, Matrix3
 	if( m_waterRenderObject )
 		m_waterRenderObject->getGridTransform( transform );
 
-}  // end getWaterTransform
+}
 
 // ------------------------------------------------------------------------------------------------
 /** water grid resolution spacing */
@@ -870,7 +860,7 @@ void W3DTerrainVisual::setWaterGridResolution( const WaterHandle *waterTable,
 	if( m_waterRenderObject )
 		m_waterRenderObject->setGridResolution( gridCellsX, gridCellsY, cellSize );
 
-}  // end setWaterGridResolution
+}
 
 // ------------------------------------------------------------------------------------------------
 /** get water grid resolution spacing */
@@ -882,7 +872,7 @@ void W3DTerrainVisual::getWaterGridResolution( const WaterHandle *waterTable,
 	if( m_waterRenderObject )
 		m_waterRenderObject->getGridResolution( gridCellsX, gridCellsY, cellSize );
 
-}  // end getWaterGridResolution
+}
 
 // ------------------------------------------------------------------------------------------------
 /** adjust the water grid in world coords by the delta */
@@ -893,7 +883,7 @@ void W3DTerrainVisual::changeWaterHeight( Real x, Real y, Real delta )
 	if( m_waterRenderObject )
 		m_waterRenderObject->changeGridHeight( x, y, delta );
 
-}  // end changeWaterHeight
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -904,7 +894,7 @@ void W3DTerrainVisual::addWaterVelocity( Real worldX, Real worldY,
 	if( m_waterRenderObject )
 		m_waterRenderObject->addVelocity( worldX, worldY, velocity, preferredHeight );
 
-}  // end addWaterVelocity
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -1178,7 +1168,7 @@ void W3DTerrainVisual::crc( Xfer *xfer )
 	// extend base class
 	TerrainVisual::crc( xfer );
 
-}  // end CRC
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer
@@ -1208,7 +1198,7 @@ void W3DTerrainVisual::xfer( Xfer *xfer )
 		DEBUG_CRASH(( "W3DTerrainVisual::xfer - m_isWaterGridRenderingEnabled mismatch" ));
 		throw SC_INVALID_DATA;
 
-	}  // end if
+	}
 
 	// xfer grid data if enabled
 	if( gridEnabled )
@@ -1229,7 +1219,7 @@ void W3DTerrainVisual::xfer( Xfer *xfer )
 										width, getGridWidth() ));
 			throw SC_INVALID_DATA;
 
-		}  // end if
+		}
 		if( height != getGridHeight() )
 		{
 
@@ -1237,11 +1227,11 @@ void W3DTerrainVisual::xfer( Xfer *xfer )
 										height, getGridHeight() ));
 			throw SC_INVALID_DATA;
 
-		}  // end if
+		}
 
 		// write data for each grid
 
-	}  // end if
+	}
 */
 
 	// Write out the terrain height data.
@@ -1288,7 +1278,7 @@ void W3DTerrainVisual::xfer( Xfer *xfer )
 
 
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -1299,5 +1289,5 @@ void W3DTerrainVisual::loadPostProcess( void )
 	// extend base class
 	TerrainVisual::loadPostProcess();
 
-}  // end loadPostProcess
+}
 

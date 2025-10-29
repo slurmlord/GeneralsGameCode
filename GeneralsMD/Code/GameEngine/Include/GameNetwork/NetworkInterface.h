@@ -28,9 +28,6 @@
 
 #pragma once
 
-#ifndef _NETWORK_INTERFACE_H_
-#define _NETWORK_INTERFACE_H_
-
 #include "Common/MessageStream.h"
 #include "GameNetwork/ConnectionManager.h"
 #include "GameNetwork/User.h"
@@ -68,6 +65,7 @@ public:
 
 	virtual void setLocalAddress(UnsignedInt ip, UnsignedInt port) = 0;	///< Tell the network what local ip and port to bind to.
 	virtual Bool isFrameDataReady( void ) = 0;												///< Are the commands for the next frame available?
+	virtual Bool isStalling() = 0;
 	virtual void parseUserList( const GameInfo *game ) = 0;						///< Parse a userlist, creating connections
 	virtual void startGame(void) = 0;																	///< Sets the network game frame counter to -1
 	virtual UnsignedInt getRunAhead(void) = 0;												///< Get the current RunAhead value
@@ -136,5 +134,3 @@ public:
  * a 32-bit unsigned integer.
  */
 UnsignedInt ResolveIP(AsciiString host);
-
-#endif // _NETWORK_INTERFACE_H_

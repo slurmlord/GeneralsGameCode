@@ -398,6 +398,7 @@ GlobalData* GlobalData::m_theOriginal = NULL;
 	{ "EnforceMaxCameraHeight",			INI::parseBool,				NULL,			offsetof( GlobalData, m_enforceMaxCameraHeight ) },
 	{ "KeyboardScrollSpeedFactor",	INI::parseReal,				NULL,			offsetof( GlobalData, m_keyboardScrollFactor ) },
 	{ "KeyboardDefaultScrollSpeedFactor",	INI::parseReal,				NULL,			offsetof( GlobalData, m_keyboardDefaultScrollFactor ) },
+	{ "KeyboardCameraRotateSpeed", INI::parseReal, NULL, offsetof( GlobalData, m_keyboardCameraRotateSpeed ) },
 	{ "MovementPenaltyDamageState",	INI::parseIndexList,	TheBodyDamageTypeNames,	 offsetof( GlobalData, m_movementPenaltyDamageState ) },
 
 // you cannot set this; it always has a value of 100%.
@@ -457,6 +458,11 @@ GlobalData* GlobalData::m_theOriginal = NULL;
 
 	{ "SpecialPowerViewObject",			INI::parseAsciiString,	NULL,			offsetof( GlobalData, m_specialPowerViewObjectName ) },
 
+	// TheSuperHackers @feature Customize the opacity (0..1) and shadows of build preview objects. Shadows are enabled by default.
+	// Note that disabling shadows loses a fair bit of contrast visually and warrants raising the opacity.
+	{ "ObjectPlacementOpacity", INI::parseReal, NULL, offsetof( GlobalData, m_objectPlacementOpacity ) },
+	{ "ObjectPlacementShadows", INI::parseBool, NULL, offsetof( GlobalData, m_objectPlacementShadows ) },
+
 	{ "StandardPublicBone", INI::parseAsciiStringVectorAppend, NULL, offsetof(GlobalData, m_standardPublicBones) },
 	{ "ShowMetrics",								INI::parseBool,				NULL,			offsetof( GlobalData, m_showMetrics ) },
 	{ "DefaultStartingCash",				INI::parseUnsignedInt, NULL,		offsetof( GlobalData, m_defaultStartingCash ) },
@@ -486,7 +492,6 @@ GlobalData* GlobalData::m_theOriginal = NULL;
 	{ "NetworkPlayerTimeoutTime", INI::parseInt, NULL, offsetof(GlobalData, m_networkPlayerTimeoutTime) },
 	{ "NetworkDisconnectScreenNotifyTime", INI::parseInt, NULL, offsetof(GlobalData, m_networkDisconnectScreenNotifyTime) },
 
-	{ "KeyboardCameraRotateSpeed", INI::parseReal, NULL, offsetof( GlobalData, m_keyboardCameraRotateSpeed ) },
 	{ "PlayStats",									INI::parseInt,				NULL,			offsetof( GlobalData, m_playStats ) },
 
 #if defined(RTS_DEBUG)
@@ -523,7 +528,7 @@ GlobalData* GlobalData::m_theOriginal = NULL;
 	{ "ExtraLogging",								INI::parseBool,				NULL,			offsetof( GlobalData, m_extraLogging ) },
 #endif
 
-	{ NULL,					NULL,						NULL,						0 }  // keep this last
+	{ NULL,					NULL,						NULL,						0 }
 
 };
 
@@ -679,7 +684,7 @@ GlobalData::GlobalData()
 		//Added By Sadullah Nader
 		//Initializations missing and needed
 		m_vertexWaterAvailableMaps[i].clear();
-	}  // end for i
+	}
 
 	m_skyBoxPositionZ = 0.0f;
 	m_drawSkyBox = FALSE;
@@ -868,6 +873,9 @@ GlobalData::GlobalData()
 	m_standardMinefieldDensity = 0.01f;
 	m_standardMinefieldDistance = 40.0f;
 
+	m_objectPlacementOpacity = 0.45f;
+	m_objectPlacementShadows = TRUE;
+
 	m_groupSelectMinSelectSize = 5;
 	m_groupSelectVolumeBase = 0.5f;
 	m_groupSelectVolumeIncrement = 0.02f;
@@ -924,7 +932,10 @@ GlobalData::GlobalData()
 
 	m_saveCameraInReplay = FALSE;
 	m_useCameraInReplay = FALSE;
+	m_enablePlayerObserver = FALSE;
 
+	m_networkLatencyFontSize = 8;
+	m_renderFpsFontSize = 8;
 	m_systemTimeFontSize = 8;
 	m_gameTimeFontSize = 8;
 
@@ -1008,7 +1019,7 @@ GlobalData::GlobalData()
 
 	m_keyboardCameraRotateSpeed = 0.1f;
 
-}  // end GlobalData
+}
 
 //-------------------------------------------------------------------------------------------------
 AsciiString GlobalData::getPath_UserData() const
@@ -1022,15 +1033,14 @@ GlobalData::~GlobalData( void )
 {
 	DEBUG_ASSERTCRASH( TheWritableGlobalData->m_next == NULL, ("~GlobalData: theOriginal is not original") );
 
-	if (m_weaponBonusSet)
-		deleteInstance(m_weaponBonusSet);
+	deleteInstance(m_weaponBonusSet);
 
 	if( m_theOriginal == this )	{
 		m_theOriginal = NULL;
 		TheWritableGlobalData = NULL;
 	}
 
-}  // end ~GlobalData
+}
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -1078,7 +1088,7 @@ GlobalData *GlobalData::newOverride( void )
 
 	return override;
 
-}  // end newOveride
+}
 
 //-------------------------------------------------------------------------------------------------
 void GlobalData::init( void )
@@ -1110,7 +1120,7 @@ void GlobalData::reset( void )
 		// set next as top
 		TheWritableGlobalData = next;
 
-	}  // end while
+	}
 
 	//
 	// we now have the one single global data in TheWritableGlobalData singleton, lets sanity check
@@ -1119,7 +1129,7 @@ void GlobalData::reset( void )
 	DEBUG_ASSERTCRASH( TheWritableGlobalData->m_next == NULL, ("ResetGlobalData: theOriginal is not original") );
 	DEBUG_ASSERTCRASH( TheWritableGlobalData == GlobalData::m_theOriginal, ("ResetGlobalData: oops") );
 
-}  // end ResetGlobalData
+}
 
 //-------------------------------------------------------------------------------------------------
 /** Parse GameData entry */
@@ -1136,14 +1146,14 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 		if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 			TheWritableGlobalData->newOverride();
 
-	}  // end if
+	}
 	else if (!TheWritableGlobalData)
 	{
 
 		// we don't have any global data instance at all yet, create one
 		TheWritableGlobalData = NEW GlobalData;
 
-	}  // end else
+	}
 	// If we're multifile, then continue loading stuff into the Global Data as normal.
 
 	// parse the ini weapon definition
@@ -1176,7 +1186,10 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 
 	TheWritableGlobalData->m_saveCameraInReplay = optionPref.saveCameraInReplays();
 	TheWritableGlobalData->m_useCameraInReplay = optionPref.useCameraInReplays();
+	TheWritableGlobalData->m_enablePlayerObserver = optionPref.getPlayerObserverEnabled();
 
+	TheWritableGlobalData->m_networkLatencyFontSize = optionPref.getNetworkLatencyFontSize();
+	TheWritableGlobalData->m_renderFpsFontSize = optionPref.getRenderFpsFontSize();
 	TheWritableGlobalData->m_systemTimeFontSize = optionPref.getSystemTimeFontSize();
 	TheWritableGlobalData->m_gameTimeFontSize = optionPref.getGameTimeFontSize();
 

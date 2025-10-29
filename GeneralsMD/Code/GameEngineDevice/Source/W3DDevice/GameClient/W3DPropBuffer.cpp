@@ -47,9 +47,8 @@
 //-----------------------------------------------------------------------------
 #include "W3DDevice/GameClient/W3DPropBuffer.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <assetmgr.h>
+#include "Common/GameUtility.h"
 #include "Common/Geometry.h"
 #include "Common/PerfTimer.h"
 #include "Common/Player.h"
@@ -364,7 +363,7 @@ void W3DPropBuffer::drawProps(RenderInfoClass &rinfo)
 			m_props[i].ss = OBJECTSHROUD_CLEAR;
 		}
 		if (m_props[i].ss == OBJECTSHROUD_INVALID) {
-			Int localPlayerIndex = ThePlayerList ? ThePlayerList->getLocalPlayer()->getPlayerIndex() : 0;
+			const Int localPlayerIndex = rts::getObservedOrLocalPlayerIndex_Safe();
 			m_props[i].ss = ThePartitionManager->getPropShroudStatusForPlayer(localPlayerIndex, &m_props[i].location);
 		}
 		if (m_props[i].ss >= OBJECTSHROUD_SHROUDED) {
@@ -392,7 +391,7 @@ void W3DPropBuffer::drawProps(RenderInfoClass &rinfo)
 void W3DPropBuffer::crc( Xfer *xfer )
 {
 	// empty. jba [8/11/2003]
-}  // end CRC
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer
@@ -408,7 +407,7 @@ void W3DPropBuffer::xfer( Xfer *xfer )
 	xfer->xferVersion( &version, currentVersion );
 
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -416,5 +415,5 @@ void W3DPropBuffer::xfer( Xfer *xfer )
 void W3DPropBuffer::loadPostProcess( void )
 {
 	// empty. jba [8/11/2003]
-}  // end loadPostProcess
+}
 

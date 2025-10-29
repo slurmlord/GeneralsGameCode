@@ -34,13 +34,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-#if defined(_MSC_VER)
 #pragma once
-#endif
-
-#ifndef TEXTURE_H
-#define TEXTURE_H
 
 #include "always.h"
 #include "refcount.h"
@@ -264,5 +258,3 @@ void Save_Texture(TextureClass * texture, ChunkSaveClass & csave);
 
 // TheSuperHackers @todo TextureBaseClass abstraction
 typedef TextureClass TextureBaseClass;
-
-#endif //TEXTURE_H

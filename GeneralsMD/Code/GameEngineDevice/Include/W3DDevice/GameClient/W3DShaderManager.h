@@ -33,9 +33,6 @@
 
 #pragma once
 
-#ifndef __W3DSHADERMANAGER_H_
-#define __W3DSHADERMANAGER_H_
-
 #include "WW3D2/texture.h"
 enum FilterTypes CPP_11(: Int);
 enum FilterModes CPP_11(: Int);
@@ -81,6 +78,8 @@ public:
 	W3DShaderManager(void);	///<constructor
 	static void init( void );	///<determine optimal shaders for current device.
 	static void shutdown(void);	///<release resources used by shaders
+	static void updateCloud();	///<update the cloud position once every render frame.
+
 	static ChipsetType getChipset(void);	///<return current device chipset.
 	static GraphicsVenderID getCurrentVendor(void) {return m_currentVendor;}	///<return current card vendor.
 	static __int64 getCurrentDriverVersion(void) {return m_driverVersion; }	///<return current driver version.
@@ -252,5 +251,3 @@ protected:
 	static Bool m_skipRender;
 	static TextureClass *m_fadePatternTexture;	///<shape/pattern of the fade
 };
-
-#endif //__W3DSHADERMANAGER_H_

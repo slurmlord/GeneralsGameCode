@@ -390,22 +390,22 @@ WindowMsgHandledType ScoreScreenInput( GameWindow *window, UnsignedInt msg,
 						TheWindowManager->winSendSystemMsg( window, GBM_SELECTED,
 																								(WindowMsgData)buttonOk, buttonOkID );
 
-					}  // end if
+					}
 
 					// don't let key fall through anywhere else
 					return MSG_HANDLED;
 
-				}  // end escape
+				}
 
-			}  // end switch( key )
+			}
 
-		}  // end char
+		}
 
-	}  // end switch( msg )
+	}
 
 	return MSG_IGNORED;
 
-}  // end MainMenuInput
+}
 
 static Bool showReplayButtonContinue()
 {
@@ -439,7 +439,7 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 				*(Bool *)mData2 = TRUE;
 
 			break;
-		}  // end input
+		}
 
 		// --------------------------------------------------------------------------------------------
 		case GBM_SELECTED:
@@ -513,7 +513,7 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 					if(TheLAN)
 						TheLAN->RequestChat(txtInput, LANAPIInterface::LANCHAT_EMOTE);
 					//add the gamespy chat request here
-			} //if ( controlID == buttonEmote )
+			}
 			for(Int i = 0; i < MAX_SLOTS; ++i)
 			{
 				AsciiString name;
@@ -540,8 +540,7 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 						req.arg.addbuddy.id = playerID;
 						UnicodeString buddyAddstr;
 						buddyAddstr = TheGameText->fetch("GUI:BuddyAddReq");
-						wcsncpy(req.arg.addbuddy.text, buddyAddstr.str(), MAX_BUDDY_CHAT_LEN);
-						req.arg.addbuddy.text[MAX_BUDDY_CHAT_LEN-1] = 0;
+						wcslcpy(req.arg.addbuddy.text, buddyAddstr.str(), MAX_BUDDY_CHAT_LEN);
 						TheGameSpyBuddyMessageQueue->addRequest(req);
 					}
 				}
@@ -572,7 +571,7 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 						TheLAN->RequestChat(txtInput, LANAPIInterface::LANCHAT_NORMAL);
 					//add the gamespy chat request here
 
-			}// if ( controlID == textEntryChatID )
+			}
 
 			break;
 		}
@@ -628,8 +627,10 @@ void PlayMovieAndBlock(AsciiString movieTitle)
 		videoBuffer = NULL;
 
 		if ( videoStream )
+		{
 			videoStream->close();
-		videoStream = NULL;
+			videoStream = NULL;
+		}
 
 		return;
 	}
@@ -666,11 +667,10 @@ void PlayMovieAndBlock(AsciiString movieTitle)
 	}
 	TheWritableGlobalData->m_loadScreenRender = FALSE;
 	movieWindow->winGetInstanceData()->setVideoBuffer(NULL);
-	if (videoBuffer)
-	{
-		delete videoBuffer;
-		videoBuffer = NULL;
-	}
+
+	delete videoBuffer;
+	videoBuffer = NULL;
+
 	if (videoStream)
 	{
 		videoStream->close();
@@ -740,7 +740,7 @@ void finishSinglePlayerInit( void )
 						if (!TheGameLODManager->didMemPass()) {
 							useLowRes = TRUE;
 						}
-						if (TheGameLODManager->findStaticLODLevel()==STATIC_GAME_LOD_LOW) {
+						if (TheGameLODManager->getRecommendedStaticLODLevel()==STATIC_GAME_LOD_LOW) {
 							useLowRes = TRUE;
 						}
 						if (TheGameLODManager->getStaticLODLevel()==STATIC_GAME_LOD_LOW) {
@@ -1264,15 +1264,6 @@ void populatePlayerInfo( Player *player, Int pos)
 	win->winSetEnabledTextColors(color, win->winGetEnabledTextBorderColor());
 	win->winHide(FALSE);
 
-	// set the total BuildingsDestroyed
-	winName.format("ScoreScreen.wnd:StaticTextBuildingsDestroyed%d", pos);
-	win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
-	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-	winValue.format(L"%d", scoreKpr->getTotalBuildingsDestroyed());
-	GadgetStaticTextSetText(win, winValue);
-	win->winSetEnabledTextColors(color, win->winGetEnabledTextBorderColor());
-	win->winHide(FALSE);
-
 	// set the total Resources
 	winName.format("ScoreScreen.wnd:StaticTextResources%d", pos);
 	win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
@@ -1714,7 +1705,7 @@ winName.format("ScoreScreen.wnd:StaticTextScore%d", pos);
 					stats.surrenders[ptIdx] += TheGameInfo->haveWeSurrendered()  || !TheVictoryConditions->getEndFrame();
 
 					AsciiString systemSpec;
-					systemSpec.format("LOD%d", TheGameLODManager->findStaticLODLevel());
+					systemSpec.format("LOD%d", TheGameLODManager->getRecommendedStaticLODLevel());
 					stats.systemSpec = systemSpec.str();
 
 					stats.techCaptured[ptIdx] += s->getTotalTechBuildingsCaptured();
@@ -1846,7 +1837,8 @@ enum
 	USA_ENEMY,		// Keep friends with friends, enemys with enemys
 	CHINA_ENEMY,
 	GLA_ENEMY,
-	MAX_RELATIONS // keep me last
+
+	MAX_RELATIONS
 };
 /**	Grab the single player info */
 //-------------------------------------------------------------------------------------------------
@@ -2033,12 +2025,6 @@ void hideWindows( Int pos )
 		DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
 		win->winHide(TRUE);
 
-		// set the total BuildingsDestroyed
-		winName.format("ScoreScreen.wnd:StaticTextBuildingsDestroyed%d", i);
-		win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
-		DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-		win->winHide(TRUE);
-
 		// set the total Resources
 		winName.format("ScoreScreen.wnd:StaticTextResources%d", i);
 		win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
@@ -2121,12 +2107,6 @@ void setObserverWindows( Player *player, Int i )
 
 	// set the total BuildingsLost
 	winName.format("ScoreScreen.wnd:StaticTextBuildingsLost%d", i);
-	win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
-	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-	win->winHide(TRUE);
-
-	// set the total BuildingsDestroyed
-	winName.format("ScoreScreen.wnd:StaticTextBuildingsDestroyed%d", i);
 	win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
 	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
 	win->winHide(TRUE);

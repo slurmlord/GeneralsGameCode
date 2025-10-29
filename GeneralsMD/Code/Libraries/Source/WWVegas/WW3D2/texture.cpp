@@ -42,7 +42,6 @@
 #include "texture.h"
 
 #include <d3d8.h>
-#include <stdio.h>
 #include <d3dx8core.h>
 #include "dx8wrapper.h"
 #include "TARGA.H"
@@ -58,9 +57,6 @@
 #include "meshmatdesc.h"
 #include "texturethumbnail.h"
 #include "wwprofile.h"
-
-//#pragma optimize("", off)
-//#pragma MESSAGE("************************************** WARNING, optimization disabled for debugging purposes")
 
 const unsigned DEFAULT_INACTIVATION_TIME=20000;
 

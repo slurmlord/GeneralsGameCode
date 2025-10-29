@@ -22,11 +22,7 @@
 //																																						//
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #pragma once
-
-#ifndef __W3DSHADOW_H_
-#define __W3DSHADOW_H_
 
 #include "matrix4.h"
 #include "GameClient/Shadow.h"
@@ -69,8 +65,6 @@ protected:
 		Bool	m_isShadowScene;	///<flag if current scene needs shadows.  No shadows on pre-pass and 2D.
 		UnsignedInt m_shadowColor;	///<color and alpha for all shadows in scene.
 		Int m_stencilShadowMask;
-};  // end class W3DShadowManager
+};
 
 extern W3DShadowManager *TheW3DShadowManager;
-
-#endif	//__W3DSHADOW_H_

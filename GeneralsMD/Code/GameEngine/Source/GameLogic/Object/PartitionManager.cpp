@@ -53,6 +53,7 @@
 #include "Common/DiscreteCircle.h"
 #include "Common/GameEngine.h"
 #include "Common/GameState.h"
+#include "Common/GameUtility.h"
 #include "Common/MessageStream.h"
 #include "Common/NameKeyGenerator.h"
 #include "Common/PerfTimer.h"
@@ -1293,7 +1294,7 @@ void PartitionCell::addLooker(Int playerIndex)
 		// On an edge trigger, tell all objects to think about their shroudedness
 		invalidateShroudedStatusForAllCois( playerIndex );
 
-		if( playerIndex == ThePlayerList->getLocalPlayer()->getPlayerIndex() )
+		if( playerIndex == rts::getObservedOrLocalPlayer()->getPlayerIndex() )
 		{
 			// and if this is the local player, do the Client update.
 			TheDisplay->setShroudLevel(m_cellX, m_cellY, newShroud);
@@ -1329,7 +1330,7 @@ void PartitionCell::removeLooker(Int playerIndex)
 		// On an edge trigger, tell all objects to think about their shroudedness
 		invalidateShroudedStatusForAllCois( playerIndex );
 
-		if( playerIndex == ThePlayerList->getLocalPlayer()->getPlayerIndex() )
+		if( playerIndex == rts::getObservedOrLocalPlayer()->getPlayerIndex() )
 		{
 			// and if this is the local player, do the Client update.
 			TheDisplay->setShroudLevel(m_cellX, m_cellY, newShroud);
@@ -1357,7 +1358,7 @@ void PartitionCell::addShrouder( Int playerIndex )
 		invalidateShroudedStatusForAllCois( playerIndex );
 
 		// and update the client if we are on the local player
-		if( playerIndex == ThePlayerList->getLocalPlayer()->getPlayerIndex() )
+		if( playerIndex == rts::getObservedOrLocalPlayer()->getPlayerIndex() )
 		{
 			TheDisplay->setShroudLevel(m_cellX, m_cellY, newShroud);
 			TheRadar->setShroudLevel(m_cellX, m_cellY, newShroud);
@@ -1512,7 +1513,7 @@ void PartitionCell::crc( Xfer *xfer )
 	xfer->xferUser(&m_cellX, sizeof(m_cellX));
 	xfer->xferUser(&m_cellY, sizeof(m_cellY));
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer Method */
@@ -1528,7 +1529,7 @@ void PartitionCell::xfer( Xfer *xfer )
 	// xfer shroud data
 	xfer->xferUser( &m_shroudLevel, sizeof( ShroudLevel ) * MAX_PLAYER_COUNT );
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -1536,7 +1537,7 @@ void PartitionCell::xfer( Xfer *xfer )
 void PartitionCell::loadPostProcess( void )
 {
 
-}  // end loadPostProcess
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1697,7 +1698,7 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 				//need a ghost object.
 				m_ghostObject->freeSnapShot(playerIndex);
 			}
-		}	// no cell I use has anything
+		}
 		else
 		{	//Record that this object was seen by the player.  This info will be used to show fogged enemy faction buildings.
 			m_everSeenByPlayer[playerIndex] = true;
@@ -2591,7 +2592,7 @@ PartitionManager::~PartitionManager()
 
 	shutdown();
 
-}  // end ~PartitionManager
+}
 
 //-----------------------------------------------------------------------------
 #ifdef PM_CACHE_TERRAIN_HEIGHT
@@ -2803,7 +2804,7 @@ void PartitionManager::update()
 			Int cellCount = m_cellCountX * m_cellCountY;
 			for (int i = 0; i < cellCount; ++i)
 			{
-				UnsignedInt threat = m_cells[i].getThreatValue(ThePlayerList->getLocalPlayer()->getPlayerIndex());
+				UnsignedInt threat = m_cells[i].getThreatValue(rts::getObservedOrLocalPlayer()->getPlayerIndex());
 				if (threat > 0)
 				{
 					Real threatMul = INT_TO_REAL(threat) / TheGlobalData->m_maxDebugThreat;
@@ -2833,7 +2834,7 @@ void PartitionManager::update()
 			Int cellCount = m_cellCountX * m_cellCountY;
 			for (int i = 0; i < cellCount; ++i)
 			{
-				UnsignedInt value = m_cells[i].getCashValue(ThePlayerList->getLocalPlayer()->getPlayerIndex());
+				UnsignedInt value = m_cells[i].getCashValue(rts::getObservedOrLocalPlayer()->getPlayerIndex());
 				if (value > 0)
 				{
 					Real valueMul = INT_TO_REAL(value) / TheGlobalData->m_maxDebugValue;
@@ -2856,7 +2857,7 @@ void PartitionManager::update()
 		}
 	}
 #endif // defined(RTS_DEBUG)
-}  // end update
+}
 
 //------------------------------------------------------------------------------
 void PartitionManager::registerObject( Object* object )
@@ -2871,7 +2872,7 @@ void PartitionManager::registerObject( Object* object )
 		DEBUG_LOG(( "Object '%s' already registered with partition manager",
 								object->getTemplate()->getName().str() ));
 		return;
-	}  // end if
+	}
 
 	// allocate a new module of partition data
 	PartitionData *mod = newInstance( PartitionData );
@@ -2945,7 +2946,7 @@ void PartitionManager::registerGhostObject( GhostObject* object)
 	{
 		DEBUG_LOG(( "GhostObject already registered with partition manager"));
 		return;
-	}  // end if
+	}
 
 	// allocate a new module of partition data
 	PartitionData *mod = newInstance( PartitionData );
@@ -3057,7 +3058,7 @@ void PartitionManager::refreshShroudForLocalPlayer()
 	TheDisplay->clearShroud();
 	TheRadar->clearShroud();
 
-	Int playerIndex = ThePlayerList->getLocalPlayer()->getPlayerIndex();
+	const Int playerIndex = rts::getObservedOrLocalPlayer()->getPlayerIndex();
 	for (int i = 0; i < m_totalCellCount; ++i)
 	{
 		Int x = m_cells[i].getCellX();
@@ -3371,9 +3372,9 @@ Object *PartitionManager::getClosestObjects(
 					foundAny = true;
 				}
 
-			} // next coi
-		}	// next cell in this radius
-  } // next radius
+			}
+		}
+  }
 
 #else // not FASTER_GCO
 
@@ -3807,7 +3808,7 @@ Bool PartitionManager::tryPosition( const Coord3D *center,
 		else if( isUnderwater == TRUE && layer == LAYER_GROUND )
 			return FALSE;
 
-	}  // end if
+	}
 
 	// object checks
 	if( BitIsSet( options->flags, FPF_IGNORE_ALL_OBJECTS ) == FALSE )
@@ -3857,7 +3858,7 @@ Bool PartitionManager::tryPosition( const Coord3D *center,
 						them->isKindOf( KINDOF_STRUCTURE ) )
 					continue;
 
-			}  // end if, relationship checks
+			}
 
 			//
 			// if we have a source that must path to the destination we will ignore that too
@@ -3872,9 +3873,9 @@ Bool PartitionManager::tryPosition( const Coord3D *center,
 			// oops, we have overlapped something
 			return FALSE;
 
-		}  // end for, them
+		}
 
-	}  // end if
+	}
 
 	//
 	// finally ... if sourceToPathDest is valid ... the source object must be able to
@@ -3891,13 +3892,13 @@ Bool PartitionManager::tryPosition( const Coord3D *center,
 																									&pos ) == FALSE )
 				return FALSE;
 
-	}  // end if
+	}
 
 	// save result and return TRUE for position found
 	*result = pos;
 	return TRUE;
 
-}  // end tryPosition
+}
 
 //
 // the following determines how fast we expand our concentric ring search for the
@@ -3980,14 +3981,14 @@ Bool PartitionManager::findPositionAround( const Coord3D *center,
 				if( tryPosition( center, dist, startAngle - angleSpacing * i, options, result ) == TRUE )
 					return TRUE;
 
-		}  // end if
+		}
 
-	}  // end for, dist
+	}
 
 	// no position was able to be found
 	return FALSE;
 
-}  // end findPositionAround
+}
 
 //-----------------------------------------------------------------------------
 // This is the main accessor of the shroud system.  At this level, allies are taken
@@ -4607,7 +4608,7 @@ void PartitionManager::crc( Xfer *xfer )
 		m_cells[i].crc(xfer);
 	}
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer Method
@@ -4639,7 +4640,7 @@ void PartitionManager::xfer( Xfer *xfer )
 		DEBUG_CRASH(( "Partition cell size has changed, this save game file is invalid" ));
 		throw SC_INVALID_DATA;
 
-	}  // end if
+	}
 
 	// cell count
 	Int totalCellCount = m_totalCellCount;
@@ -4653,7 +4654,7 @@ void PartitionManager::xfer( Xfer *xfer )
 									totalCellCount, m_totalCellCount ));
 		throw SC_INVALID_DATA;
 
-	}  // end if
+	}
 
 	// xfer each cell information
 	PartitionCell *cell;
@@ -4666,7 +4667,7 @@ void PartitionManager::xfer( Xfer *xfer )
 		// xfer the data for this cell
 		xfer->xferSnapshot( cell );
 
-	}  // end for i
+	}
 
 	// when loading tell the partition manager to rethink and refresh all shroud information
 	if( xfer->getXferMode() == XFER_LOAD )
@@ -4678,7 +4679,7 @@ void PartitionManager::xfer( Xfer *xfer )
 		// refresh the shroud for the local player which will update the radar and everything
 		refreshShroudForLocalPlayer();
 
-	}  // end if
+	}
 
 	if( version >= 2 )
 	{
@@ -4721,7 +4722,7 @@ void PartitionManager::xfer( Xfer *xfer )
 		// Version 1 save games will just not have any SightingInfos in the queue to be undone.
 	}
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -4729,7 +4730,7 @@ void PartitionManager::xfer( Xfer *xfer )
 void PartitionManager::loadPostProcess( void )
 {
 
-}  // end loadPostProcess
+}
 
 //-----------------------------------------------------------------------------
 Real PartitionManager::getGroundOrStructureHeight(Real posx, Real posy)
@@ -5835,7 +5836,7 @@ Bool SightingInfo::isInvalid() const
 void SightingInfo::crc( Xfer *xfer )
 {
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer Method
@@ -5862,7 +5863,7 @@ void SightingInfo::xfer( Xfer *xfer )
 	// how much
 	xfer->xferUnsignedInt( &m_data );
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -5870,11 +5871,11 @@ void SightingInfo::xfer( Xfer *xfer )
 void SightingInfo::loadPostProcess()
 {
 
-}  // end loadPostProcess
+}
 
 // ------------------------------------------------------------------------------------------------
 SightingInfo::~SightingInfo()
 {
 
-}  // end loadPostProcess
+}
 

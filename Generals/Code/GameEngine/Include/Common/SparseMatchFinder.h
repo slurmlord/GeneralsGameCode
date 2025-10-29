@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __SparseMatchFinder_H_
-#define __SparseMatchFinder_H_
-
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "Common/BitFlags.h"
 #include "Common/STLTypedefs.h"
@@ -169,9 +166,9 @@ private:
 					curBestMatchStr = it->getDescription();
 	#endif
 				}
-			}	// end for i
+			}
 
-		}	// end for it
+		}
 
 #ifdef SPARSEMATCH_DEBUG
 		if (numDupMatches > 0)
@@ -202,7 +199,7 @@ public:
 	//-------------------------------------------------------------------------------------------------
 	SparseMatchFinder& operator=(const SparseMatchFinder& other)
 	{
-		if CONSTEXPR ((FLAGS & SparseMatchFinderFlags_NoCopy) == 0)
+		if constexpr ((FLAGS & SparseMatchFinderFlags_NoCopy) == 0)
 		{
 			if (this != &other)
 			{
@@ -243,6 +240,3 @@ public:
 	}
 
 };
-
-#endif // __SparseMatchFinder_H_
-

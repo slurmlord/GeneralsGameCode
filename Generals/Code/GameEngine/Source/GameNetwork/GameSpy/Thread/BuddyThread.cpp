@@ -121,7 +121,6 @@ enum CallbackType
 	CALLBACK_RECVMESSAGE,
 	CALLBACK_RECVREQUEST,
 	CALLBACK_RECVSTATUS,
-	CALLBACK_MAX
 };
 
 void callbackWrapper( GPConnection *con, void *arg, void *param )
@@ -181,8 +180,7 @@ void GameSpyBuddyMessageQueue::startThread( void )
 
 void GameSpyBuddyMessageQueue::endThread( void )
 {
-	if (m_thread)
-		delete m_thread;
+	delete m_thread;
 	m_thread = NULL;
 }
 
@@ -485,8 +483,7 @@ void BuddyThreadClass::errorCallback( GPConnection *con, GPErrorArg *arg )
 		errorResponse.result = arg->result;
 		errorResponse.arg.error.errorCode = arg->errorCode;
 		errorResponse.arg.error.fatal = arg->fatal;
-		strncpy(errorResponse.arg.error.errorString, arg->errorString, MAX_BUDDY_CHAT_LEN);
-		errorResponse.arg.error.errorString[MAX_BUDDY_CHAT_LEN-1] = 0;
+		strlcpy(errorResponse.arg.error.errorString, arg->errorString, MAX_BUDDY_CHAT_LEN);
 		m_isConnecting = m_isConnected = false;
 		TheGameSpyBuddyMessageQueue->addResponse( errorResponse );
 		if (m_isdeleting)
@@ -515,8 +512,7 @@ void BuddyThreadClass::messageCallback( GPConnection *con, GPRecvBuddyMessageArg
 	gpGetInfo( con, arg->profile, GP_CHECK_CACHE, GP_BLOCKING, (GPCallback)getNickForMessage, &messageResponse);
 
 	std::wstring s = MultiByteToWideCharSingleLine( arg->message );
-	wcsncpy(messageResponse.arg.message.text, s.c_str(), MAX_BUDDY_CHAT_LEN);
-	messageResponse.arg.message.text[MAX_BUDDY_CHAT_LEN-1] = 0;
+	wcslcpy(messageResponse.arg.message.text, s.c_str(), MAX_BUDDY_CHAT_LEN);
 	messageResponse.arg.message.date = arg->date;
 	DEBUG_LOG(("Got a buddy message from %d [%ls]", arg->profile, s.c_str()));
 	TheGameSpyBuddyMessageQueue->addResponse( messageResponse );
@@ -632,8 +628,7 @@ void BuddyThreadClass::requestCallback( GPConnection *con, GPRecvBuddyRequestArg
 	gpGetInfo( con, arg->profile, GP_CHECK_CACHE, GP_BLOCKING, (GPCallback)getInfoResponseForRequest, &response);
 
 	std::wstring s = MultiByteToWideCharSingleLine( arg->reason );
-	wcsncpy(response.arg.request.text, s.c_str(), GP_REASON_LEN);
-	response.arg.request.text[GP_REASON_LEN-1] = 0;
+	wcslcpy(response.arg.request.text, s.c_str(), GP_REASON_LEN);
 
 	TheGameSpyBuddyMessageQueue->addResponse( response );
 }

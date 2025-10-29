@@ -33,17 +33,9 @@
  *---------------------------------------------------------------------------------------------*
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if _MSC_VER >= 1000
 #pragma once
-#endif // _MSC_VER >= 1000
 
-#ifndef REGISTRY_H
-#define REGISTRY_H
-
-#ifndef ALWAYS_H
 #include "always.h"
-#endif
-
 #include "Vector.H"
 #include "wwstring.h"
 #include "widestring.h"
@@ -123,5 +115,3 @@ private:
 	//
 	static bool IsLocked;
 };
-
-#endif // REGISTRY_H

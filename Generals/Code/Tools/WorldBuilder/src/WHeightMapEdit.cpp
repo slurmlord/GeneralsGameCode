@@ -406,7 +406,7 @@ void WorldHeightMapEdit::loadBaseImages(void)
 		// load the terrain definition for the WorldBuilder to reference
 		loadImagesFromTerrainType( terrain );
 
-	}  // end for
+	}
 
 }
 
@@ -457,7 +457,7 @@ void WorldHeightMapEdit::loadImagesFromTerrainType( TerrainType *terrain )
 	char buffer[ _MAX_PATH ];
 
 	// build path to texture file
-	sprintf( buffer, "%s%s", TERRAIN_TGA_DIR_PATH, terrain->getTexture().str() );
+	snprintf( buffer, ARRAY_SIZE(buffer), "%s%s", TERRAIN_TGA_DIR_PATH, terrain->getTexture().str() );
 
 	// create ascii string for texture path
 	AsciiString texturePath( buffer );
@@ -905,7 +905,7 @@ Int WorldHeightMapEdit::getTileIndexFromTerrainType( TerrainType *terrain )
 	// not found
 	return -1;
 
-}  // end getTileIndexFromTerrainType
+}
 
 Int WorldHeightMapEdit::allocateTiles(Int textureClass)
 {
@@ -1346,7 +1346,7 @@ void WorldHeightMapEdit::autoBlendOut(Int xIndex, Int yIndex, Int globalEdgeClas
 		delete pCurNode;
 	}
 
-	if (pProcessed) delete[] pProcessed;
+	delete[] pProcessed;
 	pProcessed = NULL;
 }
 

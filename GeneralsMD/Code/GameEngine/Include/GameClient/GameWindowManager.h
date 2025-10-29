@@ -31,10 +31,6 @@
 
 #pragma once
 
-#ifndef __GAMEWINDOWMANAGER_H_
-#define __GAMEWINDOWMANAGER_H_
-
-
 #include "Common/STLTypedefs.h"
 #include "Common/SubsystemInterface.h"
 #include "GameClient/WindowLayout.h"
@@ -359,7 +355,7 @@ protected:
 	const Image *m_cursorBitmap;
 	UnsignedInt m_captureFlags;
 
-};  // end GameWindowManager
+};
 
 // INLINE /////////////////////////////////////////////////////////////////////////////////////////
 inline GameWinDrawFunc GameWindowManager::getDefaultDraw( void ) { return GameWinDefaultDraw; }
@@ -416,6 +412,3 @@ public:
 	virtual GameWinDrawFunc getTextEntryImageDrawFunc() { return NULL; }
 	virtual GameWinDrawFunc getTextEntryDrawFunc() { return NULL; }
 };
-
-#endif // __GAMEWINDOWMANAGER_H_
-

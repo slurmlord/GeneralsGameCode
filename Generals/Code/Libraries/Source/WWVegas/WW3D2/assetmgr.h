@@ -35,13 +35,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-#if defined(_MSC_VER)
 #pragma once
-#endif
-
-#ifndef ASSETMGR_H
-#define ASSETMGR_H
 
 #include "always.h"
 #include "Vector.H"
@@ -203,7 +197,7 @@ public:
 	**	WW3DAssetManager::Get_Instance();
 	*/
 	static WW3DAssetManager *		Get_Instance(void) { return TheInstance; }
-	static void							Delete_This(void) { if (TheInstance) delete TheInstance; TheInstance=NULL; }
+	static void							Delete_This(void) { delete TheInstance; TheInstance=NULL; }
 
 	/*
 	** Load data from any type of w3d file
@@ -437,5 +431,3 @@ protected:
 	// Font3DInstance need access to the Font3DData
 	friend class Font3DInstanceClass;
 };
-
-#endif

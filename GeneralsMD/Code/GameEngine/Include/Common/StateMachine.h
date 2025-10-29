@@ -28,9 +28,6 @@
 
 #pragma once
 
-#ifndef _STATE_MACHINE_H_
-#define _STATE_MACHINE_H_
-
 #include "Common/GameMemory.h"
 #include "Common/GameType.h"
 #include "Common/ModelState.h"
@@ -485,8 +482,6 @@ EMPTY_DTOR(SleepState)
 // @todo Replace calls to deleteInstance with RefCountPtr<StateMachine> when so appropriate.
 inline void deleteInstance(StateMachine* machine)
 {
-	machine->Release_Ref();
+	if (machine != NULL)
+		machine->Release_Ref();
 }
-
-
-#endif // _STATE_MACHINE_H_

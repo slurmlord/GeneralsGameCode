@@ -33,6 +33,7 @@
 #define DEFINE_DEATH_NAMES
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
+#include "Common/GameUtility.h"
 #include "Common/ThingTemplate.h"
 #include "Common/ThingFactory.h"
 #include "Common/Player.h"
@@ -704,7 +705,7 @@ UpdateSleepTime ParticleUplinkCannonUpdate::update()
 	}
 
 	//Handle shrouded status changes for the client player.
-	Player *localPlayer = ThePlayerList->getLocalPlayer();
+	Player *localPlayer = rts::getObservedOrLocalPlayer();
 	if( localPlayer )
 	{
 		Bool shrouded = me->getShroudedStatus( localPlayer->getPlayerIndex() ) != OBJECTSHROUD_CLEAR;
@@ -1305,7 +1306,7 @@ void ParticleUplinkCannonUpdate::crc( Xfer *xfer )
 	// extend base class
 	UpdateModule::crc( xfer );
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
@@ -1427,7 +1428,7 @@ void ParticleUplinkCannonUpdate::xfer( Xfer *xfer )
 		m_orbitToTargetLaserRadius.xfer( xfer );
 	}
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -1461,4 +1462,4 @@ void ParticleUplinkCannonUpdate::loadPostProcess( void )
 	}
 #endif
 
-}  // end loadPostProcess
+}

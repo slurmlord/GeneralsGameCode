@@ -31,9 +31,6 @@
 
 #pragma once
 
-#ifndef __MODULE_H_
-#define __MODULE_H_
-
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "Common/INI.h"
 #include "Common/GameMemory.h"
@@ -70,7 +67,7 @@ enum ModuleType CPP_11(: Int)
 	MODULETYPE_CLIENT_UPDATE = 2,
 	// put new drawable module types here
 
-	NUM_MODULE_TYPES,  // keep this last!
+	NUM_MODULE_TYPES,
 
 	FIRST_DRAWABLE_MODULE_TYPE = MODULETYPE_DRAW,
 	LAST_DRAWABLE_MODULE_TYPE = MODULETYPE_CLIENT_UPDATE,
@@ -226,7 +223,7 @@ protected:
 private:
 	const ModuleData* m_moduleData;
 
-};  // end Module
+};
 //-------------------------------------------------------------------------------------------------
 
 
@@ -318,7 +315,3 @@ private:
 //-------------------------------------------------------------------------------------------------
 /** VARIOUS MODULE INTERFACES */
 //-------------------------------------------------------------------------------------------------
-
-
-#endif // __MODULE_H_
-

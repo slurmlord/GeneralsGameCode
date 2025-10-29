@@ -106,6 +106,7 @@ set(WWLIB_SRC
     SLNODE.H
     stimer.cpp
     stimer.h
+    STLUtils.h
     straw.cpp
     STRAW.H
     stringex.h
@@ -133,6 +134,7 @@ set(WWLIB_SRC
     widestring.h
     win.h
     WWCommon.h
+    WWDefines.h
     wwfile.cpp
     WWFILE.H
     wwstring.cpp
@@ -165,6 +167,15 @@ target_sources(core_wwlib PRIVATE ${WWLIB_SRC})
 
 target_include_directories(core_wwlib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_precompile_headers(core_wwlib PRIVATE
+    always.h
+    STLUtils.h
+    win.h
+    WWCommon.h
+    wwstring.h
+    <windows.h>
 )
 
 target_link_libraries(core_wwlib PRIVATE

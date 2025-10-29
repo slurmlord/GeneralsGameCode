@@ -47,8 +47,6 @@
 //-----------------------------------------------------------------------------
 #include "W3DDevice/GameClient/W3DBridgeBuffer.h"
 
-#include <stdio.h>
-#include <string.h>
 #include "W3DDevice/GameClient/W3DAssetManager.h"
 #include <texture.h>
 #include "Common/GlobalData.h"
@@ -237,11 +235,11 @@ Bool W3DBridge::load(BodyDamageType curDamageState)
 	char right[_MAX_PATH];
 
 	strcpy(left, modelName);
-	strcat(left, ".BRIDGE_LEFT");
+	strlcat(left, ".BRIDGE_LEFT", ARRAY_SIZE(left));
 	strcpy(section, modelName);
-	strcat(section, ".BRIDGE_SPAN");
+	strlcat(section, ".BRIDGE_SPAN", ARRAY_SIZE(section));
 	strcpy(right, modelName);
-	strcat(right, ".BRIDGE_RIGHT");
+	strlcat(right, ".BRIDGE_RIGHT", ARRAY_SIZE(right));
 
 	m_bridgeTexture = pMgr->Get_Texture(textureFile,  MIP_LEVELS_3);
 	m_leftMtx.Make_Identity();
@@ -864,7 +862,7 @@ static RenderObjClass* createTower( SimpleSceneClass *scene,
 		case BRIDGE_TOWER_TO_RIGHT:		towerPos = bridgeInfo->toRight;			break;
 		default: return NULL;
 
-	}  // end switch
+	}
 
 	// set the Z position to that of the terrain
 	towerPos.z = TheTerrainRenderObject->getHeightMapHeight( towerPos.x, towerPos.y, NULL);
@@ -949,7 +947,7 @@ static void updateTowerPos( RenderObjClass* tower,
 		case BRIDGE_TOWER_TO_RIGHT:		towerPos = bridgeInfo->toRight;			break;
 		default: return;
 
-	}  // end switch
+	}
 
 	// set the position of the tower render object to the position in the world
 	Matrix3D transform;
@@ -1030,7 +1028,7 @@ void W3DBridgeBuffer::worldBuilderUpdateBridgeTowers( W3DAssetManager *assetMana
 							towerRenderObj = createTower( scene, assetManager, pMapObj, (BridgeTowerType)j, &bridgeInfo );
 							created = TRUE;
 
-						}  // end if
+						}
 
 						// sanity
 						DEBUG_ASSERTCRASH( towerRenderObj != NULL, ("worldBuilderUpdateBridgeTowers: unable to create tower for bridge '%s'",
@@ -1043,11 +1041,11 @@ void W3DBridgeBuffer::worldBuilderUpdateBridgeTowers( W3DAssetManager *assetMana
 						if( created )
 							REF_PTR_RELEASE( towerRenderObj );
 
-					}  // end for j
+					}
 
-				}  // end if
+				}
 
-			}  // end for i
+			}
 
 			// skip the 2nd map object representing the second half of the bridgef
 			pMapObj = pMapObj2;

@@ -53,7 +53,6 @@
 #include "missingtexture.h"
 #include "TARGA.H"
 #include <d3dx8tex.h>
-#include <cstdio>
 #include "wwmemlog.h"
 #include "texture.h"
 #include "formconv.h"
@@ -61,9 +60,6 @@
 #include "ddsfile.h"
 #include "bitmaphandler.h"
 #include "wwprofile.h"
-
-//#pragma optimize("", off)
-//#pragma MESSAGE("************************************** WARNING, optimization disabled for debugging purposes")
 
 bool TextureLoader::TextureLoadSuspended;
 int TextureLoader::TextureInactiveOverrideTime = 0;
@@ -625,7 +621,7 @@ IDirect3DSurface8* TextureLoader::Load_Surface_Immediate(
 
 	DX8_ErrorCode(d3d_surface->UnlockRect());
 
-	if (converted_surface) delete[] converted_surface;
+	delete[] converted_surface;
 
 	return d3d_surface;
 }
@@ -2003,9 +1999,7 @@ bool TextureLoadTaskClass::Load_Uncompressed_Mipmap(void)
 		}
 	}
 
-	if (converted_surface) {
-		delete[] converted_surface;
-	}
+	delete[] converted_surface;
 
 	return true;
 }

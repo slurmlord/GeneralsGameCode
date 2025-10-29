@@ -30,7 +30,6 @@
 
 #include "windows.h"
 #include "stdlib.h"
-#include <string.h>
 #include "Common/STLTypedefs.h"
 
 #include "Common/DataChunk.h"
@@ -374,42 +373,33 @@ TileData *WorldHeightMap::m_alphaTiles[NUM_ALPHA_TILES]={0,0,0,0,0,0,0,0,0,0,0,0
 //
 WorldHeightMap::~WorldHeightMap(void)
 {
-	if (m_data) {
-		delete[](m_data);
-		m_data = NULL;
-	}
-	if (m_tileNdxes) {
-		delete[](m_tileNdxes);
-		m_tileNdxes = NULL;
-	}
-	if (m_blendTileNdxes) {
-		delete[](m_blendTileNdxes);
-		m_blendTileNdxes = NULL;
-	}
-	if (m_extraBlendTileNdxes) {
-		delete[](m_extraBlendTileNdxes);
-		m_extraBlendTileNdxes = NULL;
-	}
-	if (m_cliffInfoNdxes) {
-		delete[](m_cliffInfoNdxes);
-		m_cliffInfoNdxes = NULL;
-	}
-	if (m_cellFlipState)
-	{	delete[](m_cellFlipState);
-		m_cellFlipState = NULL;
-	}
-	if (m_seismicUpdateFlag)
-	{	delete[](m_seismicUpdateFlag);
-		m_seismicUpdateFlag = NULL;
-	}
-	if (m_seismicZVelocities)
-	{	delete[](m_seismicZVelocities);
-		m_seismicZVelocities = NULL;
-	}
-	if (m_cellCliffState)
-	{	delete[](m_cellCliffState);
-		m_cellCliffState = NULL;
-	}
+	delete[](m_data);
+	m_data = NULL;
+
+	delete[](m_tileNdxes);
+	m_tileNdxes = NULL;
+
+	delete[](m_blendTileNdxes);
+	m_blendTileNdxes = NULL;
+
+	delete[](m_extraBlendTileNdxes);
+	m_extraBlendTileNdxes = NULL;
+
+	delete[](m_cliffInfoNdxes);
+	m_cliffInfoNdxes = NULL;
+
+	delete[](m_cellFlipState);
+	m_cellFlipState = NULL;
+
+	delete[](m_seismicUpdateFlag);
+	m_seismicUpdateFlag = NULL;
+
+	delete[](m_seismicZVelocities);
+	m_seismicZVelocities = NULL;
+
+	delete[](m_cellCliffState);
+	m_cellCliffState = NULL;
+
 	int i;
 	for (i=0; i<NUM_SOURCE_TILES; i++) {
 		REF_PTR_RELEASE(m_sourceTiles[i]);
@@ -2223,8 +2213,8 @@ TextureClass *WorldHeightMap::getEdgeTerrainTexture(void)
 
 TerrainTextureClass *WorldHeightMap::getFlatTexture(Int xCell, Int yCell, Int cellWidth, Int pixelsPerCell)
 {
-	if (TheWritableGlobalData->m_textureReductionFactor) {
-		if (TheWritableGlobalData->m_textureReductionFactor>1) {
+	if (WW3D::Get_Texture_Reduction()) {
+		if (WW3D::Get_Texture_Reduction()>1) {
 			pixelsPerCell /= 4;
 		} else {
 			pixelsPerCell /= 2;
@@ -2492,7 +2482,7 @@ void WorldHeightMap::setupAlphaTiles(void)
 			case K_RDIAG : blendInfo.rightDiagonal = true; break;
 			case K_LLDIAG : blendInfo.leftDiagonal = true; blendInfo.longDiagonal = true; break;
 			case K_LRDIAG : blendInfo.rightDiagonal = true; blendInfo.longDiagonal = true; break;
-		} // end of case.
+		}
 		m_alphaTiles[k] = new TileData;
 		TileData *pTile = m_alphaTiles[k];
 

@@ -24,9 +24,6 @@
 
 #pragma once
 
-#ifndef __W3DTERRAINTRACKS_H_
-#define __W3DTERRAINTRACKS_H_
-
 #include "always.h"
 #include "rendobj.h"
 #include "w3d_file.h"
@@ -153,8 +150,6 @@ protected:
 	Int m_maxTankTrackOpaqueEdges;	///<maximum length of tank track before it starts fading.
 	Int m_maxTankTrackFadeDelay;	///<maximum amount of time a tank track segment remains visible.
 
-};  // end class TerrainTracksRenderObjClassSystem
+};
 
 extern TerrainTracksRenderObjClassSystem *TheTerrainTracksRenderObjClassSystem; ///< singleton for track drawing system.
-
-#endif  // end __W3DTERRAINTRACKS_H_

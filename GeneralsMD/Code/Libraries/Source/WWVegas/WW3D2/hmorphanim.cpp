@@ -219,15 +219,11 @@ void HMorphAnimClass::Free(void)
 		PoseData = NULL;
 	}
 
-	if (MorphKeyData != NULL) {
-		delete[] MorphKeyData;
-		MorphKeyData = NULL;
-	}
+	delete[] MorphKeyData;
+	MorphKeyData = NULL;
 
-	if (PivotChannel != NULL) {
-		delete[] PivotChannel;
-		PivotChannel = NULL;
-	}
+	delete[] PivotChannel;
+	PivotChannel = NULL;
 }
 
 
@@ -347,8 +343,7 @@ bool HMorphAnimClass::Import(const char *hierarchy_name, TextFileClass &text_des
 	//
 	// Copy the hierarchy name into a class variable
 	//
-	::strncpy (HierarchyName, hierarchy_name, W3D_NAME_LEN);
-	HierarchyName[W3D_NAME_LEN - 1] = 0;
+	strlcpy (HierarchyName, hierarchy_name, W3D_NAME_LEN);
 
 	//
 	// Attempt to load the new base pose
@@ -431,10 +426,8 @@ bool HMorphAnimClass::Import(const char *hierarchy_name, TextFileClass &text_des
 				//
 				// Cleanup
 				//
-				if (channel_list != NULL) {
-					delete [] channel_list;
-					channel_list = NULL;
-				}
+				delete [] channel_list;
+				channel_list = NULL;
 			}
 
 			//
@@ -447,10 +440,8 @@ bool HMorphAnimClass::Import(const char *hierarchy_name, TextFileClass &text_des
 		//
 		// Cleanup
 		//
-		if (column_list != NULL) {
-			delete [] column_list;
-			column_list = NULL;
-		}
+		delete [] column_list;
+		column_list = NULL;
 	}
 
 	return retval;
@@ -557,11 +548,11 @@ int HMorphAnimClass::Load_W3D(ChunkLoadClass & cload)
 	cload.Read(&header,sizeof(header));
 	cload.Close_Chunk();
 
-	strncpy(AnimName,header.Name,sizeof(AnimName));
-   strncpy(HierarchyName,header.HierarchyName,sizeof(HierarchyName));
+	strlcpy(AnimName,header.Name,sizeof(AnimName));
+	strlcpy(HierarchyName,header.HierarchyName,sizeof(HierarchyName));
 	strcpy(Name,HierarchyName);
-	strcat(Name,".");
-	strcat(Name,AnimName);
+	strlcat(Name, ".", ARRAY_SIZE(Name));
+	strlcat(Name, AnimName, ARRAY_SIZE(Name));
 
 	HTreeClass * base_pose = WW3DAssetManager::Get_Instance()->Get_HTree(HierarchyName);
 	if (base_pose == NULL) {
@@ -628,9 +619,8 @@ int HMorphAnimClass::Save_W3D(ChunkSaveClass & csave)
 
 	// init the header data
 	W3dMorphAnimHeaderStruct header;
-	memset(&header,0,sizeof(header));
-	strncpy(header.Name,AnimName,sizeof(header.Name));
-	strncpy(header.HierarchyName,HierarchyName,sizeof(header.HierarchyName));
+	strlcpy(header.Name,AnimName,sizeof(header.Name));
+	strlcpy(header.HierarchyName,HierarchyName,sizeof(header.HierarchyName));
 
 	header.FrameCount = FrameCount;
 	header.FrameRate = FrameRate;

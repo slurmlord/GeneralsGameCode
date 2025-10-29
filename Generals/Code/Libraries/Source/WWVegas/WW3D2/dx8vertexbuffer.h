@@ -36,12 +36,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(_MSC_VER)
 #pragma once
-#endif
-
-#ifndef DX8VERTEXBUFFER_H
-#define DX8VERTEXBUFFER_H
 
 #include "always.h"
 #include "wwdebug.h"
@@ -259,6 +254,3 @@ protected:
 public:
 	SortingVertexBufferClass(unsigned short VertexCount);
 };
-
-
-#endif //DX8VERTEXBUFFER_H

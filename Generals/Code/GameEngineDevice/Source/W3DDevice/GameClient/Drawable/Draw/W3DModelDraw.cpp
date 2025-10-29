@@ -227,9 +227,11 @@ enum ACBits CPP_11(: Int)
 	MAINTAIN_FRAME_ACROSS_STATES2,
 	MAINTAIN_FRAME_ACROSS_STATES3,
 	MAINTAIN_FRAME_ACROSS_STATES4,
+
+	AC_BITS_COUNT
 };
 
-static const char *ACBitsNames[] =
+static const char *const ACBitsNames[] =
 {
 	"RANDOMSTART",
 	"START_FRAME_FIRST",
@@ -244,6 +246,7 @@ static const char *ACBitsNames[] =
 
 	NULL
 };
+static_assert(ARRAY_SIZE(ACBitsNames) == AC_BITS_COUNT + 1, "Incorrect array size");
 
 static const Int ALL_MAINTAIN_FRAME_FLAGS =
 	(1<<MAINTAIN_FRAME_ACROSS_STATES) |
@@ -823,7 +826,7 @@ void ModelConditionInfo::validateWeaponBarrelInfo() const
 					CRCDEBUG_LOG(("validateWeaponBarrelInfo() - model name %s (unadorned) found nothing", m_modelName.str()));
 					BONEPOS_LOG(("validateWeaponBarrelInfo() - model name %s (unadorned) found nothing", m_modelName.str()));
 				}
-			}	// if empty
+			}
 
 			DEBUG_ASSERTCRASH(!(m_modelName.isNotEmpty() && m_weaponBarrelInfoVec[wslot].empty()), ("*** ASSET ERROR: No fx bone named '%s' found in model %s!",fxBoneName.str(),m_modelName.str()));
 		}
@@ -2413,7 +2416,7 @@ void W3DModelDraw::handleClientTurretPositioning()
 				}
 			}
 		}
-	} // next tslot
+	}
 }
 
 
@@ -2660,7 +2663,7 @@ Bool W3DModelDraw::updateBonesForClientParticleSystems()
 			}
 		}
 
-	}// end if Drawable
+	}
 
 	return TRUE;
 
@@ -3016,7 +3019,9 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 			shadowInfo.m_sizeY					= tmplate->getShadowSizeY();
 			shadowInfo.m_offsetX				= tmplate->getShadowOffsetX();
 			shadowInfo.m_offsetY				= tmplate->getShadowOffsetY();
-  			m_shadow = TheW3DShadowManager->addShadow(m_renderObject, &shadowInfo, draw);
+
+			DEBUG_ASSERTCRASH(m_shadow == NULL, ("m_shadow is not NULL"));
+			m_shadow = TheW3DShadowManager->addShadow(m_renderObject, &shadowInfo, draw);
 			if (m_shadow)
 			{	m_shadow->enableShadowInvisible(m_fullyObscuredByShroud);
 				m_shadow->enableShadowRender(m_shadowEnabled);
@@ -3076,8 +3081,6 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 
 			// tie in our drawable as the user data pointer in the render object
 			m_renderObject->Set_User_Data(draw->getDrawableInfo());
-
-			setTerrainDecal(draw->getTerrainDecalType());
 
 			//We created a new render object so we need to preserve the visibility state
 			//of the previous render object.
@@ -3146,7 +3149,7 @@ void W3DModelDraw::setSelectable(Bool selectable)
 			current &= ~PICK_TYPE_SELECTABLE;
 		}
 		m_renderObject->Set_Collision_Type(current);
-	}  // end if
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -3907,7 +3910,7 @@ void W3DModelDraw::crc( Xfer *xfer )
 	// extend base class
 	DrawModule::crc( xfer );
 
-}  // end crc
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
@@ -3955,9 +3958,9 @@ void W3DModelDraw::xfer( Xfer *xfer )
 				weaponRecoilInfo.m_recoilRate = (*it).m_recoilRate;
 				xfer->xferReal( &weaponRecoilInfo.m_recoilRate );
 
-			}  // end for, it
+			}
 
-		}  // end if, save
+		}
 		else
 		{
 
@@ -3980,11 +3983,11 @@ void W3DModelDraw::xfer( Xfer *xfer )
 				// stuff it in the vector
 				m_weaponRecoilInfoVec[ i ].push_back( weaponRecoilInfo );
 
-			}  // end for, j
+			}
 
-		}  // end else, load
+		}
 
-	}  // end for, i
+	}
 
 	// sub object vector
 	UnsignedByte subObjectCount = m_subObjectVec.size();
@@ -4005,9 +4008,9 @@ void W3DModelDraw::xfer( Xfer *xfer )
 			hideShowSubObjInfo.hide = (*it).hide;
 			xfer->xferBool( &hideShowSubObjInfo.hide );
 
-		}  // end for, it
+		}
 
-	}  // end if, save
+	}
 	else
 	{
 
@@ -4027,9 +4030,9 @@ void W3DModelDraw::xfer( Xfer *xfer )
 			// stuff in vector
 			m_subObjectVec.push_back( hideShowSubObjInfo );
 
-		}  // end for, i
+		}
 
-	}  // end else, load
+	}
 
 	// animation
 	if( version >= 2 )
@@ -4071,9 +4074,9 @@ void W3DModelDraw::xfer( Xfer *xfer )
 					Real percent = frame / INT_TO_REAL( anim->Get_Num_Frames()-1 );
 					xfer->xferReal( &percent );
 
-				}  // end if, anim
+				}
 
-			}  // end if
+			}
 			else
 			{
 
@@ -4081,9 +4084,9 @@ void W3DModelDraw::xfer( Xfer *xfer )
 				Bool present = FALSE;
 				xfer->xferBool( &present );
 
-			}  // end else
+			}
 
-		}  // end if, save
+		}
 		else
 		{
 
@@ -4132,21 +4135,21 @@ void W3DModelDraw::xfer( Xfer *xfer )
 						// set animation data
 						hlod->Set_Animation( anim, frame, curMode );
 
-					}  // end if, anim
+					}
 
-				}  // end if
+				}
 
-			}  // end if
+			}
 
-		}  // end else, load
+		}
 
-	}  // end if, version with animation info
+	}
 
 	// when loading, update the sub objects if we have any
 	if( xfer->getXferMode() == XFER_LOAD && m_subObjectVec.empty() == FALSE )
 		updateSubObjects();
 
-}  // end xfer
+}
 
 // ------------------------------------------------------------------------------------------------
 /** Load post process */
@@ -4157,7 +4160,7 @@ void W3DModelDraw::loadPostProcess( void )
 	// extend base class
 	DrawModule::loadPostProcess();
 
-}  // end loadPostProcess
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------

@@ -53,8 +53,6 @@
 //-----------------------------------------------------------------------------
 #include "W3DDevice/GameClient/W3DWaypointBuffer.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <assetmgr.h>
 #include <texture.h>
 
@@ -524,7 +522,7 @@ void W3DWaypointBuffer::drawWaypoints(RenderInfoClass &rinfo)
 					m_line->Set_Points( numPoints, points );
 					m_line->Render( localRinfo );
 
-				}// end if exit interface
+				}
 
 			}
 		}

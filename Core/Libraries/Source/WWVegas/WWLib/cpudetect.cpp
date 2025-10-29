@@ -120,7 +120,7 @@ char CPUDetectClass::ProcessorString[48];
 
 const char* CPUDetectClass::Get_Processor_Manufacturer_Name()
 {
-	static const char* ManufacturerNames[] = {
+	static const char* const ManufacturerNames[] = {
 		"<Unknown>",
 		"Intel",
 		"UMC",
@@ -131,6 +131,7 @@ const char* CPUDetectClass::Get_Processor_Manufacturer_Name()
 		"Rise",
 		"Transmeta"
 	};
+	static_assert(ARRAY_SIZE(ManufacturerNames) == MANUFACTURER_COUNT, "Incorrect array size");
 
 	return ManufacturerNames[ProcessorManufacturer];
 }
@@ -801,7 +802,7 @@ void CPUDetectClass::Init_Processor_String()
 			case INTEL_PROCESSOR_PENTIUM4:						str+="Pentium4"; break;
 			}
 		}
-		strncpy(ProcessorString,str.str(),sizeof(ProcessorString));
+		strlcpy(ProcessorString,str.str(),sizeof(ProcessorString));
 	}
 
 }

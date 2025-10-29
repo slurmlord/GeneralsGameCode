@@ -56,9 +56,7 @@
 #include	<direct.h>
 #include	<share.h>
 #include	<stddef.h>
-#include	<stdio.h>
 #include	<stdlib.h>
-#include	<string.h>
 
 
 /***********************************************************************************************
@@ -141,7 +139,7 @@ RawFileMClass::RawFileMClass(char const * filename) :
  *=============================================================================================*/
 char const * RawFileMClass::Set_Name(char const * filename)
 {
-	if (Filename != NULL && Allocated) {
+	if (Allocated) {
 		free((char *)Filename);
 		Filename = NULL;
 		Allocated = false;

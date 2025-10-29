@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __W3DModelDraw_H_
-#define __W3DModelDraw_H_
-
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "Common/ModelState.h"
 #include "Common/DrawModule.h"
@@ -46,6 +43,8 @@ public:
 		ANIM_MODE_LOOP_PINGPONG,
 		ANIM_MODE_LOOP_BACKWARDS,	//make sure only backwards playing animations after this one
 		ANIM_MODE_ONCE_BACKWARDS,
+
+		ANIM_MODE_COUNT
 	};
 };
 
@@ -524,6 +523,3 @@ private:
 	void hideGarrisonFlags(Bool hide);
 #endif
 };
-
-#endif // __W3DModelDraw_H_
-

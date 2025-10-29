@@ -34,12 +34,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(_MSC_VER)
 #pragma once
-#endif
-
-#ifndef __WWAUDIO_H
-#define __WWAUDIO_H
 
 #include "always.h"
 #pragma warning (push, 3)
@@ -485,10 +480,10 @@ protected:
 	//////////////////////////////////////////////////////////////////////
 	//	Miles File Callbacks
 	//////////////////////////////////////////////////////////////////////
-	static U32 AILCALLBACK	File_Open_Callback (char const *filename, U32 *file_handle);
-	static void AILCALLBACK	File_Close_Callback (U32 file_handle);
-	static S32 AILCALLBACK	File_Seek_Callback (U32 file_handle, S32 offset, U32 type);
-	static U32 AILCALLBACK	File_Read_Callback (U32 file_handle, void *buffer, U32 bytes);
+	static U32 AILCALLBACK	File_Open_Callback (char const *filename, void **file_handle);
+	static void AILCALLBACK	File_Close_Callback (void *file_handle);
+	static S32 AILCALLBACK	File_Seek_Callback (void *file_handle, S32 offset, U32 type);
+	static U32 AILCALLBACK	File_Read_Callback (void *file_handle, void *buffer, U32 bytes);
 
 private:
 
@@ -581,6 +576,3 @@ private:
 	float													m_EffectsLevel;
 	int													m_ReverbRoomType;
 };
-
-
-#endif //__WWAUDIO_H

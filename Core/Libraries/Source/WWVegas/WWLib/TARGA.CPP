@@ -62,11 +62,11 @@
 
 #include "TARGA.H"
 #ifndef TGA_USES_WWLIB_FILE_CLASSES
-#include <stdio.h>
+#include "WWDebug/wwdebug.h"
 #endif
 #include <malloc.h>
 #include <memory.h>
-#include <string.h>
+#include "stringex.h"
 #ifdef TGA_USES_WWLIB_FILE_CLASSES
 #include "WWFILE.H"
 #include "ffactory.h"
@@ -713,7 +713,7 @@ long Targa::Save(const char* name, long flags, bool addextension)
 			if (!error) {
 
 				mExtension.ExtSize = 495;
-				strncpy(mExtension.SoftID, "Denzil's Targa Code", 41);
+				strlcpy(mExtension.SoftID, "Denzil's Targa Code", sizeof(mExtension.SoftID));
 				mExtension.SoftVer.Number = (1 * 100);
 				mExtension.SoftVer.Letter = 0;
 
@@ -735,7 +735,7 @@ long Targa::Save(const char* name, long flags, bool addextension)
 		if (!error)
 			{
 			footer.Developer = 0;
-			strncpy(footer.Signature, TGA2_SIGNATURE, 16);
+			strlcpy(footer.Signature, TGA2_SIGNATURE, sizeof(footer.Signature));
 			footer.RsvdChar = '.';
 			footer.BZST = 0;
 

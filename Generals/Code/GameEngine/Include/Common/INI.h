@@ -29,9 +29,6 @@
 
 #pragma once
 
-#ifndef __INI_H_
-#define __INI_H_
-
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include <stddef.h>	// for offsetof, which we don't use but everyone who includes us does
 #include "Common/STLTypedefs.h"
@@ -91,14 +88,14 @@ enum
 /** Function typedef for parsing data block fields.
 	*
 	* buffer - the character buffer of the line from INI that we are reading and parsing
-	* instance - instance of what we're loading (for example a thingtemplate instance)
+	* instance - instance of what we're loading (for example a ThingTemplate instance)
 	* store - where to store the data parsed, this is a field in the *instance* 'instance'
 	*/
 //-------------------------------------------------------------------------------------------------
 typedef void (*INIFieldParseProc)( INI *ini, void *instance, void *store, const void* userData );
 
 //-------------------------------------------------------------------------------------------------
-typedef const char* ConstCharPtr;
+typedef const char* const ConstCharPtr;
 typedef ConstCharPtr* ConstCharPtrArray;
 
 //-------------------------------------------------------------------------------------------------
@@ -414,6 +411,3 @@ protected:
 	char m_curBlockStart[ INI_MAX_CHARS_PER_LINE ];	///< first line of cur block
 #endif
 };
-
-#endif // __INI_H_
-

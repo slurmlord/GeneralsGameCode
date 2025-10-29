@@ -81,6 +81,12 @@ void ExperienceTracker::setExperienceSink( ObjectID sink )
 }
 
 //-------------------------------------------------------------------------------------------------
+ObjectID ExperienceTracker::getExperienceSink() const
+{
+	return m_experienceSink;
+}
+
+//-------------------------------------------------------------------------------------------------
 // Set Level to AT LEAST this... if we are already >= this level, do nothing.
 void ExperienceTracker::setMinVeterancyLevel( VeterancyLevel newLevel, Bool provideFeedback )
 {
@@ -230,7 +236,7 @@ void ExperienceTracker::crc( Xfer *xfer )
 {
 	xfer->xferInt( &m_currentExperience );
 	xfer->xferUser( &m_currentLevel, sizeof( VeterancyLevel ) );
-}  // end crc
+}
 
 //-----------------------------------------------------------------------------
 /** Xfer method
@@ -261,11 +267,11 @@ void ExperienceTracker::xfer( Xfer *xfer )
 	// experience scalar
 	xfer->xferReal( &m_experienceScalar );
 
-}  // end xfer
+}
 
 //-----------------------------------------------------------------------------
 void ExperienceTracker::loadPostProcess( void )
 {
 
-}  // end loadPostProcess
+}
 

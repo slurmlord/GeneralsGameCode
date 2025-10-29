@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "WWDefines.h"
+
 // Note: Retail compatibility must not be broken before this project officially does.
 // Use RETAIL_COMPATIBLE_CRC and RETAIL_COMPATIBLE_XFER_SAVE to guard breaking changes.
 
@@ -31,6 +33,13 @@
 
 #ifndef RETAIL_COMPATIBLE_XFER_SAVE
 #define RETAIL_COMPATIBLE_XFER_SAVE (1) // Game is expected to be Xfer Save compatible with retail Generals 1.08, Zero Hour 1.04
+#endif
+
+// This is here to easily toggle between the retail compatible with fixed pathfinding fallback and pure fixed pathfinding mode
+#if RETAIL_COMPATIBLE_CRC
+#define RETAIL_COMPATIBLE_PATHFINDING (1)
+#else
+#define RETAIL_COMPATIBLE_PATHFINDING (0)
 #endif
 
 // This is essentially synonymous for RETAIL_COMPATIBLE_CRC. There is a lot wrong with AIGroup, such as use-after-free, double-free, leaks,
@@ -64,11 +73,30 @@
 #define ENABLE_FILESYSTEM_EXISTENCE_CACHE (1)
 #endif
 
+// Enable prioritization of textures by size. This will improve the texture quality of 481 textures in Zero Hour
+// by using the larger resolution textures from Generals. Content wise these textures are identical.
+#ifndef PRIORITIZE_TEXTURES_BY_SIZE
+#define PRIORITIZE_TEXTURES_BY_SIZE (1)
+#endif
+
 // Enable obsolete code. This mainly refers to code that existed in Generals but was removed in GeneralsMD.
 // Disable and remove this when Generals and GeneralsMD are merged.
 #if RTS_GENERALS
 #ifndef USE_OBSOLETE_GENERALS_CODE
 #define USE_OBSOLETE_GENERALS_CODE (1)
+#endif
+#endif
+
+// Overwrite window settings until wnd data files are adapted or fixed.
+#ifndef ENABLE_GUI_HACKS
+#define ENABLE_GUI_HACKS (1)
+#endif
+
+// Tell our computer identity in the LAN lobby. Disable for privacy.
+// Was enabled in the retail game and exposed the computer login and host names.
+#ifdef RTS_DEBUG
+#ifndef TELL_COMPUTER_IDENTITY_IN_LAN_LOBBY
+#define TELL_COMPUTER_IDENTITY_IN_LAN_LOBBY (1)
 #endif
 #endif
 

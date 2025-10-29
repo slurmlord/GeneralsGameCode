@@ -35,13 +35,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-#if defined(_MSC_VER)
 #pragma once
-#endif
-
-#ifndef HCANIM_H
-#define HCANIM_H
 
 #include "always.h"
 #include "quat.h"
@@ -93,8 +87,6 @@ public:
 	float							Get_Total_Time() { return (float)NumFrames / FrameRate; }
 	int							Get_Flavor() { return Flavor; }
 
-//	Vector3						Get_Translation(int pividx,float frame);
-//	Quaternion					Get_Orientation(int pividx,float frame);
 	void							Get_Translation(Vector3& translation, int pividx,float frame) const;
 	void							Get_Orientation(Quaternion& orientation, int pividx,float frame) const;
 	void							Get_Transform(Matrix3D& transform, int pividx,float frame) const;
@@ -133,7 +125,3 @@ private:
 	void add_bit_channel(TimeCodedBitChannelClass * newchan);
 
 };
-
-
-#endif // hcanim.h
-

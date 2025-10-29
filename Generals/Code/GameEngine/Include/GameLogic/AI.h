@@ -28,9 +28,6 @@
 
 #pragma once
 
-#ifndef _AI_H_
-#define _AI_H_
-
 #include "Common/Snapshot.h"
 #include "Common/SubsystemInterface.h"
 #include "Common/GameMemory.h"
@@ -322,21 +319,23 @@ enum AttitudeType CPP_11(: Int) {
 	ATTITUDE_ALERT=1,
 	ATTITUDE_AGGRESSIVE=2,
 	ATTITUDE_INVALID=3
-};		///< AI "attitude" behavior modifiers
+};
 
 enum CommandSourceType CPP_11(: Int);
 
 typedef UnsignedInt CommandSourceMask;
 
 #ifdef DEFINE_COMMANDSOURCEMASK_NAMES
-static const char *TheCommandSourceMaskNames[] =
+static const char *const TheCommandSourceMaskNames[] =
 {
 	"FROM_PLAYER",
 	"FROM_SCRIPT",
 	"FROM_AI",
+	"FROM_DOZER", //don't use this
 
 	NULL
 };
+static_assert(ARRAY_SIZE(TheCommandSourceMaskNames) == COMMAND_SOURCE_TYPE_COUNT + 1, "Incorrect array size");
 #endif
 
 //------------------------------------------------------------------------------------------------------------
@@ -399,8 +398,6 @@ enum AICommandType CPP_11(: Int)	// Stored in save file, do not reorder/renumber
 	AICMD_FOLLOW_PATH_APPEND,
 	AICMD_MOVE_TO_POSITION_EVEN_IF_SLEEPING,	// same as AICMD_MOVE_TO_POSITION, but even ATTITUDE_SLEEP units respond.
 	AICMD_GUARD_TUNNEL_NETWORK,
-
-	AICMD_NUM_COMMANDS	// keep last
 };
 
 struct AICommandParms
@@ -1014,6 +1011,3 @@ private:
 
 	mutable VecObjectID	m_lastRequestedIDList;			///< this is used so we can return by reference, saving a copy
 };
-
-
-#endif // _AI_H_
