@@ -979,7 +979,9 @@ static Bool TruncatePlayerNames(AsciiStringVec& playerNames, Int truncateAmount)
 		}
 
 		// as the name is UTF-8, make sure we don't truncate part of a multibyte character
-		while ((playerNames[lengthIndex[i].Index][lengthIndex[i].Length - truncateNameAmount - 1] & 0xC0) == 0x80) {
+		while (lengthIndex[i].Length - truncateNameAmount >=  MinimumNameLength
+			&& (playerNames[lengthIndex[i].Index][lengthIndex[i].Length - truncateNameAmount + 1] & 0xC0) == 0x80)
+		{
 			++truncateNameAmount; // move back to the start of the multibyte character
 		}
 
