@@ -423,14 +423,18 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		callbackInfoPtr = &callBackInfo;
 	}
 
-	int dumpTypeFlags = MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory;
-	if (dumpType != DUMP_TYPE_MINIMAL)
+	int dumpTypeFlags = MiniDumpNormal;
+	switch (dumpType)
 	{
+	case DUMP_TYPE_FULL:
+		dumpTypeFlags |= MiniDumpWithFullMemory;
+		FALLTHROUGH;
+	case DUMP_TYPE_GAMEMEMORY:
 		dumpTypeFlags |= MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpWithFullMemoryInfo;
-		if (dumpType == DUMP_TYPE_FULL)
-		{
-			dumpTypeFlags |= MiniDumpWithFullMemory;
-		}
+		FALLTHROUGH;
+	case DUMP_TYPE_MINIMAL:
+		dumpTypeFlags |= MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory;
+		break;
 	}
 
 	MINIDUMP_TYPE miniDumpType = static_cast<MINIDUMP_TYPE>(dumpTypeFlags);
@@ -482,7 +486,7 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		// Only include data segments for the game and ntdll modules to keep dump size low
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
 		{
-			if (::StrCmpIW(input.Module.FullPath, m_executablePath) != 0 && !::StrStrIW(input.Module.FullPath, L"ntdll.dll"))
+			if (!::StrCmpIW(input.Module.FullPath, m_executablePath) && !::StrStrIW(input.Module.FullPath, L"ntdll.dll"))
 			{
 				// Exclude data segments for the module
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
