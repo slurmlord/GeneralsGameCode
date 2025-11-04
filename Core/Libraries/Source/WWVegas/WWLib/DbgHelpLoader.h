@@ -23,6 +23,9 @@
 #include <win.h>
 #include <imagehlp.h> // Must be included after Windows.h
 #include <set>
+#ifdef RTS_ENABLE_CRASHDUMP
+#include <DbgHelpLoader_minidump.h>
+#endif
 
 #include "SystemAllocator.h"
 
@@ -49,6 +52,17 @@ public:
 	static bool load();
 	static bool reload();
 	static void unload();
+
+#ifdef RTS_ENABLE_CRASHDUMP
+	static BOOL WINAPI miniDumpWriteDump(
+		HANDLE hProcess,
+		DWORD ProcessId,
+		HANDLE hFile,
+		MINIDUMP_TYPE DumpType,
+		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+		PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
+#endif
 
 	static BOOL WINAPI symInitialize(
 		HANDLE hProcess,
@@ -106,6 +120,17 @@ public:
 
 private:
 
+#ifdef RTS_ENABLE_CRASHDUMP
+	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
+		HANDLE hProcess,
+		DWORD ProcessId,
+		HANDLE hFile,
+		MINIDUMP_TYPE DumpType,
+		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+		PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
+#endif
+
 	typedef BOOL (WINAPI *SymInitialize_t) (
 		HANDLE hProcess,
 		LPSTR UserSearchPath,
@@ -160,6 +185,9 @@ private:
 		PGET_MODULE_BASE_ROUTINE GetModuleBaseRoutine,
 		PTRANSLATE_ADDRESS_ROUTINE TranslateAddress);
 
+#ifdef RTS_ENABLE_CRASHDUMP
+	MiniDumpWriteDump_t m_miniDumpWriteDump;
+#endif
 	SymInitialize_t m_symInitialize;
 	SymCleanup_t m_symCleanup;
 	SymLoadModule_t m_symLoadModule;

@@ -60,8 +60,6 @@ MiniDumper::MiniDumper()
 {
 	m_miniDumpInitialized = false;
 	m_requestedDumpType = DUMP_TYPE_MINIMAL;
-	m_dbgHlp = NULL;
-	m_pMiniDumpWriteDump = NULL;
 	m_dumpRequested = NULL;
 	m_dumpComplete = NULL;
 	m_quitting = NULL;
@@ -74,7 +72,6 @@ MiniDumper::MiniDumper()
 #endif
 	memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpDir));
 	memset(m_dumpFile, 0, ARRAY_SIZE(m_dumpFile));
-	memset(m_sysDbgHelpPath, 0, ARRAY_SIZE(m_sysDbgHelpPath));
 	memset(m_executablePath, 0, ARRAY_SIZE(m_executablePath));
 };
 
@@ -148,36 +145,12 @@ void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info,
 
 void MiniDumper::Initialize(const AsciiString& userDirPath)
 {
-	// Find the full path to the dbghelp.dll file in the system32 dir
-	::GetSystemDirectory(m_sysDbgHelpPath, MAX_PATH);
-	strlcat(m_sysDbgHelpPath, "\\dbghelp.dll", MAX_PATH);
+	bool success = DbgHelpLoader::load();
 
 	// We want to only use the dbghelp.dll from the OS installation, as the one bundled with the game does not support MiniDump functionality
-	Bool loadedDbgHelp = false;
-	HMODULE m_dbgHlp = ::GetModuleHandle(m_sysDbgHelpPath);
-	if (m_dbgHlp == NULL)
+	if (!(success && DbgHelpLoader::isLoadedFromSystem()))
 	{
-		// Load the dbghelp library from the system folder
-		m_dbgHlp = ::LoadLibrary(m_sysDbgHelpPath);
-		if (m_dbgHlp == NULL)
-		{
-			DEBUG_LOG(("MiniDumper::Initialize: Unable to load system-provided dbghelp.dll from '%s': error=%u", m_sysDbgHelpPath, ::GetLastError()));
-			return;
-		}
-
-		loadedDbgHelp = true;
-	}
-
-	m_pMiniDumpWriteDump = reinterpret_cast<MiniDumpWriteDump_t>(::GetProcAddress(m_dbgHlp, "MiniDumpWriteDump"));
-	if (m_pMiniDumpWriteDump == NULL)
-	{
-		if (loadedDbgHelp)
-		{
-			::FreeLibrary(m_dbgHlp);
-			m_dbgHlp = NULL;
-		}
-
-		DEBUG_LOG(("MiniDumper::Initialize: Could not get address of proc MiniDumpWriteDump from '%s'!", m_sysDbgHelpPath));
+		DEBUG_LOG(("MiniDumper::Initialize: Unable to load system-provided dbghelp.dll, minidump functionality disabled."));
 		return;
 	}
 
@@ -291,11 +264,7 @@ void MiniDumper::CleanupResources()
 		m_quitting = NULL;
 	}
 
-	if (m_dbgHlp != NULL)
-	{
-		::FreeModule(m_dbgHlp);
-		m_dbgHlp = NULL;
-	}
+	DbgHelpLoader::unload();
 }
 
 void MiniDumper::ShutDown()
@@ -438,7 +407,7 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 	}
 
 	MINIDUMP_TYPE miniDumpType = static_cast<MINIDUMP_TYPE>(dumpTypeFlags);
-	BOOL success = m_pMiniDumpWriteDump(
+	BOOL success = DbgHelpLoader::miniDumpWriteDump(
 		::GetCurrentProcess(),
 		currentProcessId,
 		dumpFile,

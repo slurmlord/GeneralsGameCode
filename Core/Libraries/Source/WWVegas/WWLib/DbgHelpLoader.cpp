@@ -22,7 +22,8 @@
 DbgHelpLoader* DbgHelpLoader::Inst = NULL;
 
 DbgHelpLoader::DbgHelpLoader()
-	: m_symInitialize(NULL)
+	: m_miniDumpWriteDump(NULL)
+	, m_symInitialize(NULL)
 	, m_symCleanup(NULL)
 	, m_symLoadModule(NULL)
 	, m_symUnloadModule(NULL)
@@ -86,6 +87,7 @@ bool DbgHelpLoader::load()
 		Inst->m_loadedFromSystem = true;
 	}
 
+	Inst->m_miniDumpWriteDump = reinterpret_cast<MiniDumpWriteDump_t>(::GetProcAddress(Inst->m_dllModule, "MiniDumpWriteDump"));
 	Inst->m_symInitialize = reinterpret_cast<SymInitialize_t>(::GetProcAddress(Inst->m_dllModule, "SymInitialize"));
 	Inst->m_symCleanup = reinterpret_cast<SymCleanup_t>(::GetProcAddress(Inst->m_dllModule, "SymCleanup"));
 	Inst->m_symLoadModule = reinterpret_cast<SymLoadModule_t>(::GetProcAddress(Inst->m_dllModule, "SymLoadModule"));
@@ -133,6 +135,23 @@ void DbgHelpLoader::unload()
 	GlobalFree(Inst);
 	Inst = NULL;
 }
+
+#ifdef RTS_ENABLE_CRASHDUMP
+BOOL DbgHelpLoader::miniDumpWriteDump(
+	HANDLE hProcess,
+	DWORD ProcessId,
+	HANDLE hFile,
+	MINIDUMP_TYPE DumpType,
+	PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+	PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+	PMINIDUMP_CALLBACK_INFORMATION CallbackParam)
+{
+	if (Inst != NULL && Inst->m_miniDumpWriteDump)
+		return Inst->m_miniDumpWriteDump(hProcess, ProcessId, hFile, DumpType, ExceptionParam, UserStreamParam, CallbackParam);
+
+	return FALSE;
+}
+#endif
 
 BOOL DbgHelpLoader::symInitialize(
 	HANDLE hProcess,

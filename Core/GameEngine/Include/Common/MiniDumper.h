@@ -19,8 +19,7 @@
 #pragma once
 
 #ifdef RTS_ENABLE_CRASHDUMP
-#include <imagehlp.h>
-#include "Common/MiniDumper_compat.h"
+#include "DbgHelpLoader.h"
 
 enum DumpType CPP_11(: Int)
 {
@@ -87,11 +86,7 @@ private:
 	// Path buffers
 	Char m_dumpDir[MAX_PATH];
 	Char m_dumpFile[MAX_PATH];
-	Char m_sysDbgHelpPath[MAX_PATH];
 	WideChar m_executablePath[MAX_PATH];
-
-	// Module handles
-	HMODULE m_dbgHlp;
 
 	// Event handles
 	HANDLE m_dumpRequested;
@@ -110,19 +105,6 @@ private:
 
 	AllocationRangeIterator m_rangeIter;
 #endif
-
-	// Function pointer to MiniDumpWriteDump in dbghelp.dll
-	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
-		HANDLE hProcess,
-		DWORD ProcessId,
-		HANDLE hFile,
-		MINIDUMP_TYPE DumpType,
-		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-		PMINIDUMP_CALLBACK_INFORMATION CallbackParam
-		);
-
-	MiniDumpWriteDump_t m_pMiniDumpWriteDump;
 };
 
 extern MiniDumper* TheMiniDumper;

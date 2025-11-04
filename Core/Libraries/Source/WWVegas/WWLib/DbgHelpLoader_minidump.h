@@ -4,8 +4,9 @@
 
 // Backported defines from minidumpapiset.h for VC6.
 // minidumpapiset.h is Copyright (C) Microsoft Corporation. All rights reserved.
+
 #if defined(_MSC_VER) && _MSC_VER < 1300
-#pragma pack(push, 4)
+#include <pshpack4.h>
 
 typedef enum _MINIDUMP_CALLBACK_TYPE {
 	ModuleCallback,
@@ -249,6 +250,6 @@ typedef enum _MODULE_WRITE_FLAGS {
 	ModuleWriteCodeSegs = 0x0040,
 } MODULE_WRITE_FLAGS;
 
-#pragma pack(pop)
+#include <poppack.h>
 #endif
 #endif

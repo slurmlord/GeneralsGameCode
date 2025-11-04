@@ -72,7 +72,6 @@ set(GAMEENGINE_SRC
 #    Include/Common/MapReaderWriterInfo.h
 #    Include/Common/MessageStream.h
     Include/Common/MiniDumper.h
-    Include/Common/MiniDumper_compat.h
 #    Include/Common/MiniLog.h
     Include/Common/MiscAudio.h
 #    Include/Common/MissionStats.h
