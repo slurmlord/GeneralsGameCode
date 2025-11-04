@@ -22,8 +22,10 @@
 DbgHelpLoader* DbgHelpLoader::Inst = NULL;
 
 DbgHelpLoader::DbgHelpLoader()
-	: m_miniDumpWriteDump(NULL)
-	, m_symInitialize(NULL)
+	: m_symInitialize(NULL)
+#ifdef RTS_ENABLE_CRASHDUMP
+	, m_miniDumpWriteDump(NULL)
+#endif
 	, m_symCleanup(NULL)
 	, m_symLoadModule(NULL)
 	, m_symUnloadModule(NULL)
@@ -87,7 +89,9 @@ bool DbgHelpLoader::load()
 		Inst->m_loadedFromSystem = true;
 	}
 
+#ifdef RTS_ENABLE_CRASHDUMP
 	Inst->m_miniDumpWriteDump = reinterpret_cast<MiniDumpWriteDump_t>(::GetProcAddress(Inst->m_dllModule, "MiniDumpWriteDump"));
+#endif
 	Inst->m_symInitialize = reinterpret_cast<SymInitialize_t>(::GetProcAddress(Inst->m_dllModule, "SymInitialize"));
 	Inst->m_symCleanup = reinterpret_cast<SymCleanup_t>(::GetProcAddress(Inst->m_dllModule, "SymCleanup"));
 	Inst->m_symLoadModule = reinterpret_cast<SymLoadModule_t>(::GetProcAddress(Inst->m_dllModule, "SymLoadModule"));
