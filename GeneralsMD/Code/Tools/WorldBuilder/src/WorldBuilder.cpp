@@ -125,7 +125,7 @@ char const * WBGameFileClass::Set_Name( char const *filename )
 	}
 
 	if (TheFileSystem->doesFileExist(filename)) {
-		strcpy( m_filePath, filename );
+		strlcpy(m_filePath, filename, ARRAY_SIZE(m_filePath));
 		m_fileExists = true;
 	}
 	return m_filename;
@@ -328,13 +328,8 @@ BOOL CWorldBuilderApp::InitInstance()
 	// Set the current directory to the app directory.
 	char buf[_MAX_PATH];
 	GetModuleFileName(NULL, buf, sizeof(buf));
-	char *pEnd = buf + strlen(buf);
-	while (pEnd != buf) {
-		if (*pEnd == '\\') {
-			*pEnd = 0;
-			break;
-		}
-		pEnd--;
+	if (char *pEnd = strrchr(buf, '\\')) {
+		*pEnd = 0;
 	}
 	::SetCurrentDirectory(buf);
 
@@ -365,7 +360,7 @@ BOOL CWorldBuilderApp::InitInstance()
 #if 1
 	// srj sez: put INI into our user data folder, not the ap dir
 	free((void*)m_pszProfileName);
-	strcpy(buf, TheGlobalData->getPath_UserData().str());
+	strlcpy(buf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(buf));
 	strlcat(buf, "WorldBuilder.ini", ARRAY_SIZE(buf));
 #else
 	strlcat(buf, "//", ARRAY_SIZE(buf));

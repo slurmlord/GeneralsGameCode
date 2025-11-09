@@ -28,7 +28,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
-#include "PreRTS.h"	// This must go first in EVERY cpp file int the GameEngine
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 
 #include "Lib/BaseType.h"
@@ -312,11 +312,7 @@ void PopulateReplayFileListbox(GameWindow *listbox)
 
 			const Bool hasMap = mapData != NULL;
 
-			const Bool isCrcCompatible =
-				   header.versionString == TheVersion->getUnicodeVersion()
-				&& header.versionNumber == TheVersion->getVersionNumber()
-				&& header.exeCRC == TheGlobalData->m_exeCRC
-				&& header.iniCRC == TheGlobalData->m_iniCRC;
+			const Bool isCrcCompatible = RecorderClass::replayMatchesGameVersion(header);
 
 			if (isCrcCompatible)
 			{

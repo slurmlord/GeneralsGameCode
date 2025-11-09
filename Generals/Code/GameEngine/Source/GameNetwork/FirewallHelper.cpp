@@ -46,7 +46,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "PreRTS.h"	// This must go first in EVERY cpp file int the GameEngine
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #include "Common/crc.h"
 #include "Common/UserPreferences.h"
@@ -679,9 +679,7 @@ Bool FirewallHelperClass::detectionBeginUpdate() {
 		/*
 		** Do the lookup.
 		*/
-		char temp_name[256];
-		strcpy(temp_name, mangler_name_ptr);
-		struct hostent *host_info = gethostbyname(temp_name);
+		struct hostent *host_info = gethostbyname(mangler_name_ptr);
 
 		if (!host_info) {
 			DEBUG_LOG(("gethostbyname failed! Error code %d", WSAGetLastError()));

@@ -23,11 +23,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // InGameUI.cpp ///////////////////////////////////////////////////////////////////////////////////
-// Implementation of in-game user interface singleton inteface
+// Implementation of in-game user interface singleton
 // Author: Michael S. Booth, March 2001
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "PreRTS.h"	// This must go first in EVERY cpp file int the GameEngine
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #define DEFINE_SHADOW_NAMES
 
@@ -1995,7 +1995,7 @@ void InGameUI::update( void )
 	if (m_cameraRotatingLeft || m_cameraRotatingRight || m_cameraZoomingIn || m_cameraZoomingOut)
 	{
 		// TheSuperHackers @tweak The camera rotation and zoom are now decoupled from the render update.
-		const Real fpsRatio = (Real)BaseFps / TheFramePacer->getUpdateFps();
+		const Real fpsRatio = TheFramePacer->getBaseOverUpdateFpsRatio();
 		const Real rotateAngle = TheGlobalData->m_keyboardCameraRotateSpeed * fpsRatio;
 		const Real zoomHeight = (Real)View::ZoomHeightPerSecond * fpsRatio;
 
@@ -3709,8 +3709,10 @@ void InGameUI::postDraw( void )
 				m_uiMessages[ i ].displayString->draw( x, y, m_uiMessages[ i ].color, dropColor );
 
 				// increment text spot to next location
-				GameFont *font = m_uiMessages[ i ].displayString->getFont();
-				y += font->height;
+				if (GameFont *font = m_uiMessages[ i ].displayString->getFont())
+				{
+					y += font->height;
+				}
 
 			}
 

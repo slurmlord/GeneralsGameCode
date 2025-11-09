@@ -99,15 +99,9 @@ LogClass::LogClass(const char *fname)
 {
 	char buffer[ _MAX_PATH ];
 	GetModuleFileName( NULL, buffer, sizeof( buffer ) );
-	char *pEnd = buffer + strlen( buffer );
-	while( pEnd != buffer )
+	if (char *pEnd = strrchr(buffer, '\\'))
 	{
-		if( *pEnd == '\\' )
-		{
-			*pEnd = 0;
-			break;
-		}
-		pEnd--;
+		*pEnd = 0;
 	}
 	// TheSuperHackers @fix Caball009 03/06/2025 Don't use AsciiString here anymore because its memory allocator may not have been initialized yet.
 	const std::string fullPath = std::string(buffer) + "\\" + fname;
@@ -284,9 +278,15 @@ static const char *TerrainDecalTextureName[TERRAIN_DECAL_MAX]=
 	"EXHordeB",//enthusiastic vehicle
 	"EXHordeB_UP", //enthusiastic vehicle with nationalism
 	"EXJunkCrate",//Marks a crate as special
+#if RTS_GENERALS && RETAIL_COMPATIBLE_XFER_SAVE
+	"", //dummy entry for TERRAIN_DECAL_NONE
 	"EXHordeC_UP", //enthusiastic with fanaticism
 	"EXChemSuit", //Marks a unit as having chemical suit on
-	"",	//dummy entry for TERRAIN_DECAL_NONE
+#else
+	"EXHordeC_UP", //enthusiastic with fanaticism
+	"EXChemSuit", //Marks a unit as having chemical suit on
+	"", //dummy entry for TERRAIN_DECAL_NONE
+#endif
 	"" //dummy entry for TERRAIN_DECAL_SHADOW_TEXTURE
 };
 
@@ -1859,7 +1859,7 @@ void W3DModelDraw::allocateShadows(void)
 	if (m_shadow == NULL && m_renderObject && TheW3DShadowManager && tmplate->getShadowType() != SHADOW_NONE)
 	{
 		Shadow::ShadowTypeInfo shadowInfo;
-		strcpy(shadowInfo.m_ShadowName, tmplate->getShadowTextureName().str());
+		strlcpy(shadowInfo.m_ShadowName, tmplate->getShadowTextureName().str(), ARRAY_SIZE(shadowInfo.m_ShadowName));
 		DEBUG_ASSERTCRASH(shadowInfo.m_ShadowName[0] != '\0', ("this should be validated in ThingTemplate now"));
 		shadowInfo.allowUpdates			= FALSE;		//shadow image will never update
 		shadowInfo.allowWorldAlign	= TRUE;	//shadow image will wrap around world objects
@@ -2751,9 +2751,9 @@ void W3DModelDraw::setTerrainDecal(TerrainDecalType type)
 	//decalInfo.m_type = SHADOW_ADDITIVE_DECAL;//temporary kluge to test graphics
 
 	if (type == TERRAIN_DECAL_SHADOW_TEXTURE)
-		strcpy(decalInfo.m_ShadowName,tmplate->getShadowTextureName().str());
+		strlcpy(decalInfo.m_ShadowName, tmplate->getShadowTextureName().str(), ARRAY_SIZE(decalInfo.m_ShadowName));
 	else
-		strcpy(decalInfo.m_ShadowName,TerrainDecalTextureName[type]);
+		strlcpy(decalInfo.m_ShadowName, TerrainDecalTextureName[type], ARRAY_SIZE(decalInfo.m_ShadowName));
 	decalInfo.m_sizeX = tmplate->getShadowSizeX();
 	decalInfo.m_sizeY = tmplate->getShadowSizeY();
 	decalInfo.m_offsetX = tmplate->getShadowOffsetX();
@@ -3069,7 +3069,7 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 		if (m_renderObject && TheW3DShadowManager && tmplate->getShadowType() != SHADOW_NONE)
 		{
 			Shadow::ShadowTypeInfo shadowInfo;
-			strcpy(shadowInfo.m_ShadowName, tmplate->getShadowTextureName().str());
+			strlcpy(shadowInfo.m_ShadowName, tmplate->getShadowTextureName().str(), ARRAY_SIZE(shadowInfo.m_ShadowName));
 			DEBUG_ASSERTCRASH(shadowInfo.m_ShadowName[0] != '\0', ("this should be validated in ThingTemplate now"));
 			shadowInfo.allowUpdates			= FALSE;		//shadow image will never update
 			shadowInfo.allowWorldAlign	= TRUE;	//shadow image will wrap around world objects
@@ -3455,7 +3455,7 @@ Int W3DModelDraw::getPristineBonePositionsForConditionState(
 	for (; i <= endIndex; ++i)
 	{
 		if (i == 0)
-			strcpy(buffer, boneNamePrefix);
+			strlcpy(buffer, boneNamePrefix, ARRAY_SIZE(buffer));
 		else
 			sprintf(buffer, "%s%02d", boneNamePrefix, i);
 
@@ -3612,7 +3612,7 @@ Int W3DModelDraw::getCurrentBonePositions(
 	for (; i <= endIndex; ++i)
 	{
 		if (i == 0)
-			strcpy(buffer, boneNamePrefix);
+			strlcpy(buffer, boneNamePrefix, ARRAY_SIZE(buffer));
 		else
 			sprintf(buffer, "%s%02d", boneNamePrefix, i);
 

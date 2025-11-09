@@ -26,10 +26,11 @@
 // Translate raw input events into camera movement commands
 // Author: Michael S. Booth, April 2001
 
-#include "PreRTS.h"	// This must go first in EVERY cpp file int the GameEngine
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #include "Common/FramePacer.h"
 #include "Common/GameType.h"
+#include "Common/GameEngine.h"
 #include "Common/MessageStream.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
@@ -440,7 +441,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 			{
 
 				// TheSuperHackers @bugfix Mauller 07/06/2025 The camera scrolling is now decoupled from the render update.
-				const Real fpsRatio = (Real)BaseFps / TheFramePacer->getUpdateFps();
+				const Real fpsRatio = TheFramePacer->getBaseOverUpdateFpsRatio();
 
 				switch (m_scrollType)
 				{

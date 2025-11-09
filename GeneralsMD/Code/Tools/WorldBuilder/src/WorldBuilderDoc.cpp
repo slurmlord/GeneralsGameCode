@@ -434,10 +434,10 @@ void CWorldBuilderDoc::Serialize(CArchive& ar)
 
 AsciiString ConvertToNonGCName(AsciiString name, Bool checkTemplate=true)
 {
-	char oldName[256];
+	const char* replacePrefix = "GC_";
+	const size_t offset = name.startsWith(replacePrefix) ? strlen(replacePrefix) : 0u;
 	char newName[256];
-	strcpy(oldName, name.str());
-	strcpy(newName, oldName+strlen("GC_"));
+	strlcpy(newName, name.str() + offset, ARRAY_SIZE(newName));
 	AsciiString swapName;
 	swapName.set(newName);
 	if (checkTemplate)
@@ -453,11 +453,11 @@ AsciiString ConvertToNonGCName(AsciiString name, Bool checkTemplate=true)
 
 AsciiString ConvertName(AsciiString name)
 {
-	char oldName[256];
+	const char* replacePrefix = "Fundamentalist";
+	const size_t offset = name.startsWith(replacePrefix) ? strlen(replacePrefix) : 0u;
 	char newName[256];
-	strcpy(oldName, name.str());
 	strcpy(newName, "GLA");
-	strlcat(newName, oldName+strlen("Fundamentalist"), ARRAY_SIZE(newName));
+	strlcat(newName, name.str() + offset, ARRAY_SIZE(newName));
 	AsciiString swapName;
 	swapName.set(newName);
 	const ThingTemplate *tt = TheThingFactory->findTemplate(swapName);
@@ -469,11 +469,11 @@ AsciiString ConvertName(AsciiString name)
 
 AsciiString ConvertFaction(AsciiString name)
 {
-	char oldName[256];
+	const char* replacePrefix = "FactionFundamentalist";
+	const size_t offset = name.startsWith(replacePrefix) ? strlen(replacePrefix) : 0u;
 	char newName[256];
-	strcpy(oldName, name.str());
 	strcpy(newName, "FactionGLA");
-	strlcat(newName, oldName+strlen("FactionFundamentalist"), ARRAY_SIZE(newName));
+	strlcat(newName, name.str() + offset, ARRAY_SIZE(newName));
 	AsciiString swapName;
 	swapName.set(newName);
 	const PlayerTemplate* pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(swapName));
@@ -1416,13 +1416,8 @@ BOOL CWorldBuilderDoc::OnOpenDocument(LPCTSTR lpszPathName)
 
 	WbApp()->setCurrentDirectory(AsciiString(buf));
 	::GetModuleFileName(NULL, buf, sizeof(buf));
-	char *pEnd = buf + strlen(buf);
-	while (pEnd != buf) {
-		if (*pEnd == '\\') {
-			*pEnd = 0;
-			break;
-		}
-		pEnd--;
+	if (char *pEnd = strrchr(buf, '\\')) {
+		*pEnd = 0;
 	}
 	::SetCurrentDirectory(buf);
 
@@ -2160,22 +2155,13 @@ void CWorldBuilderDoc::OnDumpDocToText(void)
 	static FILE *theLogFile = NULL;
 	Bool open = false;
 	try {
-		char dirbuf[ _MAX_PATH ];
-		::GetModuleFileName( NULL, dirbuf, sizeof( dirbuf ) );
-		char *pEnd = dirbuf + strlen( dirbuf );
-		while( pEnd != dirbuf )
+		char curbuf[_MAX_PATH];
+		GetModuleFileName(NULL, curbuf, sizeof(curbuf));
+		if (char *pEnd = strrchr(curbuf, '\\'))
 		{
-			if( *pEnd == '\\' )
-			{
-				*(pEnd + 1) = 0;
-				break;
-			}
-			pEnd--;
+			*(pEnd + 1) = 0;
 		}
 
-		char curbuf[ _MAX_PATH ];
-
-		strcpy(curbuf, dirbuf);
 		strlcat(curbuf, m_strTitle, ARRAY_SIZE(curbuf));
 		strlcat(curbuf, ".txt", ARRAY_SIZE(curbuf));
 

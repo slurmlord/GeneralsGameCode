@@ -42,7 +42,7 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "PreRTS.h"	// This must go first in EVERY cpp file int the GameEngine
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #define DEFINE_SCIENCE_AVAILABILITY_NAMES
 
@@ -2511,7 +2511,7 @@ Upgrade *Player::findUpgrade( const UpgradeTemplate *upgradeTemplate )
 //=================================================================================================
 /** Does the player have this completed upgrade */
 //=================================================================================================
-Bool Player::hasUpgradeComplete( const UpgradeTemplate *upgradeTemplate )
+Bool Player::hasUpgradeComplete( const UpgradeTemplate *upgradeTemplate ) const
 {
 	UpgradeMaskType testMask = upgradeTemplate->getUpgradeMask();
 	return hasUpgradeComplete( testMask );
@@ -2522,7 +2522,7 @@ Bool Player::hasUpgradeComplete( const UpgradeTemplate *upgradeTemplate )
 	Does the player have this completed upgrade.  This form is exposed so Objects can do quick lookups.
 */
 //=================================================================================================
-Bool Player::hasUpgradeComplete( UpgradeMaskType testMask )
+Bool Player::hasUpgradeComplete( UpgradeMaskType testMask ) const
 {
 	return m_upgradesCompleted.testForAll( testMask );
 }

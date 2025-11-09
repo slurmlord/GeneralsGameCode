@@ -43,7 +43,7 @@
 // ----------------------------------------------------------------------------
 
 // SYSTEM INCLUDES
-#include "PreRTS.h"	// This must go first in EVERY cpp file int the GameEngine
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 
 // USER INCLUDES
@@ -379,17 +379,12 @@ void DebugInit(int flags)
 
 		char dirbuf[ _MAX_PATH ];
 		::GetModuleFileName( NULL, dirbuf, sizeof( dirbuf ) );
-		char *pEnd = dirbuf + strlen( dirbuf );
-		while( pEnd != dirbuf )
+		if (char *pEnd = strrchr(dirbuf, '\\'))
 		{
-			if( *pEnd == '\\' )
-			{
-				*(pEnd + 1) = 0;
-				break;
-			}
-			pEnd--;
+			*(pEnd + 1) = 0;
 		}
 
+		static_assert(ARRAY_SIZE(theLogFileNamePrev) >= ARRAY_SIZE(dirbuf), "Incorrect array size");
 		strcpy(theLogFileNamePrev, dirbuf);
 		strlcat(theLogFileNamePrev, gAppPrefix, ARRAY_SIZE(theLogFileNamePrev));
 		strlcat(theLogFileNamePrev, DEBUG_FILE_NAME_PREV, ARRAY_SIZE(theLogFileNamePrev));
@@ -400,6 +395,7 @@ void DebugInit(int flags)
 		}
 		strlcat(theLogFileNamePrev, ".txt", ARRAY_SIZE(theLogFileNamePrev));
 
+		static_assert(ARRAY_SIZE(theLogFileName) >= ARRAY_SIZE(dirbuf), "Incorrect array size");
 		strcpy(theLogFileName, dirbuf);
 		strlcat(theLogFileName, gAppPrefix, ARRAY_SIZE(theLogFileNamePrev));
 		strlcat(theLogFileName, DEBUG_FILE_NAME, ARRAY_SIZE(theLogFileNamePrev));
@@ -749,9 +745,9 @@ void ReleaseCrash(const char *reason)
 		return; // We are shutting down, and TheGlobalData has been freed.  jba. [4/15/2003]
 	}
 
-	strcpy(prevbuf, TheGlobalData->getPath_UserData().str());
+	strlcpy(prevbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(prevbuf));
 	strlcat(prevbuf, RELEASECRASH_FILE_NAME_PREV, ARRAY_SIZE(prevbuf));
-	strcpy(curbuf, TheGlobalData->getPath_UserData().str());
+	strlcpy(curbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(curbuf));
 	strlcat(curbuf, RELEASECRASH_FILE_NAME, ARRAY_SIZE(curbuf));
 
  	remove(prevbuf);
@@ -848,9 +844,9 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	char prevbuf[ _MAX_PATH ];
 	char curbuf[ _MAX_PATH ];
 
-	strcpy(prevbuf, TheGlobalData->getPath_UserData().str());
+	strlcpy(prevbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(prevbuf));
 	strlcat(prevbuf, RELEASECRASH_FILE_NAME_PREV, ARRAY_SIZE(prevbuf));
-	strcpy(curbuf, TheGlobalData->getPath_UserData().str());
+	strlcpy(curbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(curbuf));
 	strlcat(curbuf, RELEASECRASH_FILE_NAME, ARRAY_SIZE(curbuf));
 
  	remove(prevbuf);
