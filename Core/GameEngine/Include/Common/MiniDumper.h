@@ -81,6 +81,7 @@ private:
 
 private:
 	Bool m_miniDumpInitialized;
+	Bool m_loadedDbgHelp;
 	DumpType m_requestedDumpType;
 
 	// Path buffers

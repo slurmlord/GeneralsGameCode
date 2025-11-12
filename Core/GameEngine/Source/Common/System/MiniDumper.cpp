@@ -59,6 +59,7 @@ void MiniDumper::shutdownMiniDumper()
 MiniDumper::MiniDumper()
 {
 	m_miniDumpInitialized = false;
+	m_loadedDbgHelp = false;
 	m_requestedDumpType = DUMP_TYPE_MINIMAL;
 	m_dumpRequested = NULL;
 	m_dumpComplete = NULL;
@@ -145,10 +146,10 @@ void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info,
 
 void MiniDumper::Initialize(const AsciiString& userDirPath)
 {
-	bool success = DbgHelpLoader::load();
+	m_loadedDbgHelp = DbgHelpLoader::load();
 
 	// We want to only use the dbghelp.dll from the OS installation, as the one bundled with the game does not support MiniDump functionality
-	if (!(success && DbgHelpLoader::isLoadedFromSystem()))
+	if (!(m_loadedDbgHelp && DbgHelpLoader::isLoadedFromSystem()))
 	{
 		DEBUG_LOG(("MiniDumper::Initialize: Unable to load system-provided dbghelp.dll, minidump functionality disabled."));
 		return;
@@ -265,12 +266,20 @@ void MiniDumper::CleanupResources()
 	}
 
 	DbgHelpLoader::unload();
+	m_loadedDbgHelp = false;
 }
 
 void MiniDumper::ShutDown()
 {
 	if (!m_miniDumpInitialized)
 	{
+		// Even if we failed to initialize, DbgHelpLoader could still have loaded its library
+		if (m_loadedDbgHelp)
+		{
+			DbgHelpLoader::unload();
+			m_loadedDbgHelp = false;
+		}
+
 		return;
 	}
 
@@ -399,7 +408,7 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		dumpTypeFlags |= MiniDumpWithFullMemory;
 		FALLTHROUGH;
 	case DUMP_TYPE_GAMEMEMORY:
-		dumpTypeFlags |= MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpWithFullMemoryInfo;
+		dumpTypeFlags |= MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpWithFullMemoryInfo | MiniDumpWithPrivateReadWriteMemory;
 		FALLTHROUGH;
 	case DUMP_TYPE_MINIMAL:
 		dumpTypeFlags |= MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory;
@@ -455,7 +464,7 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		// Only include data segments for the game and ntdll modules to keep dump size low
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
 		{
-			if (!::StrCmpIW(input.Module.FullPath, m_executablePath) && !::StrStrIW(input.Module.FullPath, L"ntdll.dll"))
+			if (::StrCmpIW(input.Module.FullPath, m_executablePath) && !::StrStrIW(input.Module.FullPath, L"ntdll.dll"))
 			{
 				// Exclude data segments for the module
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);

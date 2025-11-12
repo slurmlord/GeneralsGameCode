@@ -58,17 +58,6 @@ public:
 	static bool load();
 	static void unload();
 
-#ifdef RTS_ENABLE_CRASHDUMP
-	static BOOL WINAPI miniDumpWriteDump(
-		HANDLE hProcess,
-		DWORD ProcessId,
-		HANDLE hFile,
-		MINIDUMP_TYPE DumpType,
-		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-		PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
-#endif
-
 	static BOOL WINAPI symInitialize(
 		HANDLE hProcess,
 		LPSTR UserSearchPath,
@@ -122,6 +111,17 @@ public:
 		PFUNCTION_TABLE_ACCESS_ROUTINE FunctionTableAccessRoutine,
 		PGET_MODULE_BASE_ROUTINE GetModuleBaseRoutine,
 		PTRANSLATE_ADDRESS_ROUTINE TranslateAddress);
+
+#ifdef RTS_ENABLE_CRASHDUMP
+	static BOOL WINAPI miniDumpWriteDump(
+		HANDLE hProcess,
+		DWORD ProcessId,
+		HANDLE hFile,
+		MINIDUMP_TYPE DumpType,
+		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+		PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
+#endif
 
 private:
 
@@ -192,9 +192,6 @@ private:
 		PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 #endif
 
-#ifdef RTS_ENABLE_CRASHDUMP
-	MiniDumpWriteDump_t m_miniDumpWriteDump;
-#endif
 	SymInitialize_t m_symInitialize;
 	SymCleanup_t m_symCleanup;
 	SymLoadModule_t m_symLoadModule;
@@ -205,13 +202,15 @@ private:
 	SymSetOptions_t m_symSetOptions;
 	SymFunctionTableAccess_t m_symFunctionTableAccess;
 	StackWalk_t m_stackWalk;
+#ifdef RTS_ENABLE_CRASHDUMP
+	MiniDumpWriteDump_t m_miniDumpWriteDump;
+#endif
 
 	typedef std::set<HANDLE, std::less<HANDLE>, stl::system_allocator<HANDLE> > Processes;
 
 	Processes m_initializedProcesses;
 	HMODULE m_dllModule;
 	int m_referenceCount;
-	CriticalSectionClass m_criticalSection;
 	bool m_failed;
 	bool m_loadedFromSystem;
 };
