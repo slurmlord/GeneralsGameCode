@@ -57,6 +57,7 @@ private:
 	BOOL DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
 	void CleanupResources();
 	Bool IsDumpThreadStillRunning() const;
+	void ShutdownDumpThread();
 
 	// Callbacks from dbghelp
 	static BOOL CALLBACK MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput);

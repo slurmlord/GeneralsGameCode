@@ -176,7 +176,6 @@ void MiniDumper::Initialize(const AsciiString& userDirPath)
 	{
 		// Something went wrong with the creation of the events..
 		DEBUG_LOG(("MiniDumper::Initialize: Unable to create events: error=%u", ::GetLastError()));
-		CleanupResources();
 		return;
 	}
 
@@ -184,14 +183,12 @@ void MiniDumper::Initialize(const AsciiString& userDirPath)
 	if (!m_dumpThread)
 	{
 		DEBUG_LOG(("MiniDumper::Initialize: Unable to create thread: error=%u", ::GetLastError()));
-		CleanupResources();
 		return;
 	}
 
-	if (!::ResumeThread(m_dumpThread))
+	if (::ResumeThread(m_dumpThread) != 1)
 	{
 		DEBUG_LOG(("MiniDumper::Initialize: Unable to resume thread: error=%u", ::GetLastError()));
-		CleanupResources();
 		return;
 	}
 
@@ -207,7 +204,7 @@ Bool MiniDumper::IsInitialized() const
 Bool MiniDumper::IsDumpThreadStillRunning() const
 {
 	DWORD exitCode;
-	if (::GetExitCodeThread(m_dumpThread, &exitCode) && exitCode == STILL_ACTIVE)
+	if (m_dumpThread != NULL && ::GetExitCodeThread(m_dumpThread, &exitCode) && exitCode == STILL_ACTIVE)
 	{
 		return true;
 	}
@@ -238,13 +235,48 @@ Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 	return true;
 }
 
-void MiniDumper::CleanupResources()
+void MiniDumper::ShutdownDumpThread()
 {
+	if (IsDumpThreadStillRunning())
+	{
+		DEBUG_ASSERTCRASH(m_quitting != NULL, ("MiniDumper::ShutdownDumpThread: Dump thread still running despite m_quitting being NULL"));
+		::SetEvent(m_quitting);
+
+		DWORD waitRet = ::WaitForSingleObject(m_dumpThread, 3000);
+		if (waitRet != WAIT_OBJECT_0)
+		{
+			if (waitRet == WAIT_TIMEOUT)
+			{
+				DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for dumping thread to exit timed out, killing thread", waitRet));
+				::TerminateThread(m_dumpThread, DUMPER_EXIT_FORCED_TERMINATE);
+			}
+			else if (waitRet == WAIT_FAILED)
+			{
+				DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for minidump triggering failed: status=%u, error=%u", waitRet, ::GetLastError()));
+			}
+			else
+			{
+				DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for minidump triggering failed: status=%u", waitRet));
+			}
+		}
+	}
+}
+
+void MiniDumper::ShutDown()
+{
+	ShutdownDumpThread();
+
 	if (m_dumpThread != NULL)
 	{
-		DEBUG_ASSERTCRASH(!IsDumpThreadStillRunning(), ("MiniDumper::CleanupResources() called while Dump thread still active"));
+		DEBUG_ASSERTCRASH(!IsDumpThreadStillRunning(), ("MiniDumper::ShutDown: ShutdownDumpThread() was unable to stop Dump thread"));
 		::CloseHandle(m_dumpThread);
 		m_dumpThread = NULL;
+	}
+
+	if (m_quitting != NULL)
+	{
+		::CloseHandle(m_quitting);
+		m_quitting = NULL;
 	}
 
 	if (m_dumpComplete != NULL)
@@ -259,52 +291,12 @@ void MiniDumper::CleanupResources()
 		m_dumpRequested = NULL;
 	}
 
-	if (m_quitting != NULL)
+	if (m_loadedDbgHelp)
 	{
-		::CloseHandle(m_quitting);
-		m_quitting = NULL;
+		DbgHelpLoader::unload();
+		m_loadedDbgHelp = false;
 	}
 
-	DbgHelpLoader::unload();
-	m_loadedDbgHelp = false;
-}
-
-void MiniDumper::ShutDown()
-{
-	if (!m_miniDumpInitialized)
-	{
-		// Even if we failed to initialize, DbgHelpLoader could still have loaded its library
-		if (m_loadedDbgHelp)
-		{
-			DbgHelpLoader::unload();
-			m_loadedDbgHelp = false;
-		}
-
-		return;
-	}
-
-	::SetEvent(m_quitting);
-	DWORD waitRet = ::WaitForSingleObject(m_dumpThread, 3000);
-	if (waitRet != WAIT_OBJECT_0)
-	{
-		if (waitRet == WAIT_TIMEOUT)
-		{
-			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for dumping thread to exit timed out, killing thread", waitRet));
-			::TerminateThread(m_dumpThread, DUMPER_EXIT_FORCED_TERMINATE);
-		}
-		else if (waitRet == WAIT_FAILED)
-		{
-			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for minidump triggering failed: status=%u, error=%u", waitRet, ::GetLastError()));
-		}
-		else
-		{
-			DEBUG_LOG(("MiniDumper::ShutDown: Waiting for minidump triggering failed: status=%u", waitRet));
-		}
-
-		return;
-	}
-
-	CleanupResources();
 	m_miniDumpInitialized = false;
 }
 

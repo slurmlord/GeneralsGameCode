@@ -734,8 +734,9 @@ void ReleaseCrash(const char *reason)
 		// Do dumps both with and without extended info
 		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
 		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
-		MiniDumper::shutdownMiniDumper();
 	}
+
+	MiniDumper::shutdownMiniDumper();
 #endif
 
 	char prevbuf[ _MAX_PATH ];
@@ -809,8 +810,9 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 		// Do dumps both with and without extended info
 		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
 		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
-		MiniDumper::shutdownMiniDumper();
 	}
+
+	MiniDumper::shutdownMiniDumper();
 #endif
 
 	UnicodeString prompt = TheGameText->fetch(p);
