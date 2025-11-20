@@ -35,6 +35,8 @@ _EXCEPTION_POINTERS g_exceptionPointers = { 0 };
 EXCEPTION_RECORD g_exceptionRecord = { 0 };
 CONTEXT g_exceptionContext = { 0 };
 
+constexpr const char* DumpFileNamePrefix = "Crash";
+
 void MiniDumper::initMiniDumper(const AsciiString& userDirPath)
 {
 	DEBUG_ASSERTCRASH(TheMiniDumper == NULL, ("MiniDumper::initMiniDumper called on already created instance"));
@@ -71,9 +73,9 @@ MiniDumper::MiniDumper()
 	m_dumpObjectsSubState = 0;
 	m_dmaRawBlockIndex = 0;
 #endif
-	memset(m_dumpDir, 0, ARRAY_SIZE(m_dumpDir));
-	memset(m_dumpFile, 0, ARRAY_SIZE(m_dumpFile));
-	memset(m_executablePath, 0, ARRAY_SIZE(m_executablePath));
+	m_dumpDir[0] = 0;
+	m_dumpFile[0] = 0;
+	m_executablePath[0] = 0;
 };
 
 LONG WINAPI MiniDumper::DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info)
@@ -214,8 +216,9 @@ Bool MiniDumper::IsDumpThreadStillRunning() const
 
 Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 {
-	constexpr Int MaxExtendedFileCount = 2;
-	constexpr Int MaxMiniFileCount = 10;
+	constexpr const Int MaxExtendedFileCount = 2;
+	constexpr const Int MaxFullFileCount = 2;
+	constexpr const Int MaxMiniFileCount = 10;
 
 	strlcpy(m_dumpDir, userDirPath.str(), ARRAY_SIZE(m_dumpDir));
 	strlcat(m_dumpDir, "CrashDumps\\", ARRAY_SIZE(m_dumpDir));
@@ -228,9 +231,10 @@ Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 		}
 	}
 
-	// Clean up old files (we keep a maximum of 10 small and 2 extended)
-	KeepNewestFiles(m_dumpDir, "CrashX*", MaxExtendedFileCount);
-	KeepNewestFiles(m_dumpDir, "CrashM*", MaxMiniFileCount);
+	// Clean up old files (we keep a maximum of 10 small, 2 extended and 2 full)
+	KeepNewestFiles(m_dumpDir, DUMP_TYPE_GAMEMEMORY, MaxExtendedFileCount);
+	KeepNewestFiles(m_dumpDir, DUMP_TYPE_FULL, MaxFullFileCount);
+	KeepNewestFiles(m_dumpDir, DUMP_TYPE_MINIMAL, MaxMiniFileCount);
 
 	return true;
 }
@@ -354,16 +358,16 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 	SYSTEMTIME sysTime;
 	::GetLocalTime(&sysTime);
 #if RTS_GENERALS
-	Char product = 'G';
+	const Char product = 'G';
 #elif RTS_ZEROHOUR
-	Char product = 'Z';
+	const Char product = 'Z';
 #endif
-	Char dumpTypeSpecifier = dumpType == DUMP_TYPE_MINIMAL ? 'M' : 'X';
+	Char dumpTypeSpecifier = static_cast<Char>(dumpType);
 	DWORD currentProcessId = ::GetCurrentProcessId();
 
 	// m_dumpDir is stored with trailing backslash in Initialize
-	snprintf(m_dumpFile, ARRAY_SIZE(m_dumpFile), "%sCrash%c%c-%04d%02d%02d-%02d%02d%02d-%s-pid%ld.dmp",
-		m_dumpDir, dumpTypeSpecifier, product, sysTime.wYear, sysTime.wMonth,
+	snprintf(m_dumpFile, ARRAY_SIZE(m_dumpFile), "%s%s%c%c-%04d%02d%02d-%02d%02d%02d-%s-pid%ld.dmp",
+		m_dumpDir, DumpFileNamePrefix, dumpTypeSpecifier, product, sysTime.wYear, sysTime.wMonth,
 		sysTime.wDay, sysTime.wHour, sysTime.wMinute, sysTime.wSecond,
 		GitShortSHA1, currentProcessId);
 
@@ -456,7 +460,8 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		// Only include data segments for the game and ntdll modules to keep dump size low
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
 		{
-			if (::StrCmpIW(input.Module.FullPath, m_executablePath) && !::StrStrIW(input.Module.FullPath, L"ntdll.dll"))
+			if (::StrCmpIW(input.Module.FullPath, m_executablePath) && !::StrStrIW(input.Module.FullPath, L"ntdll.dll") &&
+				!::StrStrIW(input.Module.FullPath, L"kernel32.dll"))
 			{
 				// Exclude data segments for the module
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
@@ -645,10 +650,10 @@ bool MiniDumper::CompareByLastWriteTime(const FileInfo& a, const FileInfo& b)
 	return ::CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
 }
 
-void MiniDumper::KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount)
+void MiniDumper::KeepNewestFiles(const std::string& directory, const DumpType dumpType, const Int keepCount)
 {
 	// directory already contains trailing backslash
-	std::string searchPath = directory + fileWildcard;
+	std::string searchPath = directory + DumpFileNamePrefix + static_cast<Char>(dumpType) + "*";
 	WIN32_FIND_DATA findData;
 	HANDLE hFind = ::FindFirstFile(searchPath.c_str(), &findData);
 

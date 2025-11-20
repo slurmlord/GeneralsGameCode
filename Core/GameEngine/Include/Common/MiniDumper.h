@@ -21,14 +21,14 @@
 #ifdef RTS_ENABLE_CRASHDUMP
 #include "DbgHelpLoader.h"
 
-enum DumpType CPP_11(: Int)
+enum DumpType CPP_11(: Char)
 {
 	// Smallest dump type with call stacks and some supporting variables
-	DUMP_TYPE_MINIMAL,
+	DUMP_TYPE_MINIMAL = 'M',
 	// Large dump including all memory regions allocated by the GameMemory implementaion
-	DUMP_TYPE_GAMEMEMORY,
+	DUMP_TYPE_GAMEMEMORY = 'X',
 	// Largest dump size including complete memory contents of the process
-	DUMP_TYPE_FULL,
+	DUMP_TYPE_FULL = 'F',
 };
 
 enum MiniDumperExitCode CPP_11(: Int)
@@ -69,7 +69,7 @@ private:
 
 	// Dump file directory bookkeeping
 	Bool InitializeDumpDirectory(const AsciiString& userDirPath);
-	static void KeepNewestFiles(const std::string& directory, const std::string& fileWildcard, const Int keepCount);
+	static void KeepNewestFiles(const std::string& directory, const DumpType dumpType, const Int keepCount);
 
 	// Struct to hold file information
 	struct FileInfo

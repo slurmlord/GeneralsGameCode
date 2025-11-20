@@ -718,6 +718,21 @@ double SimpleProfiler::getAverageTime()
 		}
 	}
 
+#ifdef RTS_ENABLE_CRASHDUMP
+	static void TriggerMiniDump()
+	{
+		if (TheMiniDumper && TheMiniDumper->IsInitialized())
+		{
+			// Do dumps both with and without extended info
+			TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
+			TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
+		}
+
+		MiniDumper::shutdownMiniDumper();
+
+	}
+#endif
+
 void ReleaseCrash(const char *reason)
 {
 	/// do additional reporting on the crash, if possible
@@ -729,14 +744,7 @@ void ReleaseCrash(const char *reason)
 	}
 
 #ifdef RTS_ENABLE_CRASHDUMP
-	if (TheMiniDumper && TheMiniDumper->IsInitialized())
-	{
-		// Do dumps both with and without extended info
-		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
-		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
-	}
-
-	MiniDumper::shutdownMiniDumper();
+	TriggerMiniDump();
 #endif
 
 	char prevbuf[ _MAX_PATH ];
@@ -805,14 +813,7 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	}
 
 #ifdef RTS_ENABLE_CRASHDUMP
-	if (TheMiniDumper && TheMiniDumper->IsInitialized())
-	{
-		// Do dumps both with and without extended info
-		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
-		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
-	}
-
-	MiniDumper::shutdownMiniDumper();
+	TriggerMiniDump();
 #endif
 
 	UnicodeString prompt = TheGameText->fetch(p);
