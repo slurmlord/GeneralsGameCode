@@ -718,20 +718,21 @@ double SimpleProfiler::getAverageTime()
 		}
 	}
 
+
+static void TriggerMiniDump()
+{
 #ifdef RTS_ENABLE_CRASHDUMP
-	static void TriggerMiniDump()
+	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
-		if (TheMiniDumper && TheMiniDumper->IsInitialized())
-		{
-			// Do dumps both with and without extended info
-			TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
-			TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
-		}
-
-		MiniDumper::shutdownMiniDumper();
-
+		// Do dumps both with and without extended info
+		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
+		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
 	}
+
+	MiniDumper::shutdownMiniDumper();
 #endif
+}
+
 
 void ReleaseCrash(const char *reason)
 {
@@ -743,9 +744,7 @@ void ReleaseCrash(const char *reason)
 		}
 	}
 
-#ifdef RTS_ENABLE_CRASHDUMP
 	TriggerMiniDump();
-#endif
 
 	char prevbuf[ _MAX_PATH ];
 	char curbuf[ _MAX_PATH ];
@@ -812,9 +811,7 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 		return;
 	}
 
-#ifdef RTS_ENABLE_CRASHDUMP
 	TriggerMiniDump();
-#endif
 
 	UnicodeString prompt = TheGameText->fetch(p);
 	UnicodeString mesg = TheGameText->fetch(m);

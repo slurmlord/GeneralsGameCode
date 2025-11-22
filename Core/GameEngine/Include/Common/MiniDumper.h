@@ -45,10 +45,10 @@ public:
 	MiniDumper();
 	Bool IsInitialized() const;
 	void TriggerMiniDump(DumpType dumpType);
-	void TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, DumpType dumpType);
+	void TriggerMiniDumpForException(_EXCEPTION_POINTERS* e_info, DumpType dumpType);
 	static void initMiniDumper(const AsciiString& userDirPath);
 	static void shutdownMiniDumper();
-	static LONG WINAPI DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info);
+	static LONG WINAPI DumpingExceptionFilter(_EXCEPTION_POINTERS* e_info);
 
 private:
 	void Initialize(const AsciiString& userDirPath);
@@ -58,6 +58,7 @@ private:
 	void CleanupResources();
 	Bool IsDumpThreadStillRunning() const;
 	void ShutdownDumpThread();
+	Bool ShouldWriteDataSegsForModule(const PWCHAR module) const;
 
 	// Callbacks from dbghelp
 	static BOOL CALLBACK MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput);
@@ -79,6 +80,7 @@ private:
 	};
 
 	static bool CompareByLastWriteTime(const FileInfo& a, const FileInfo& b);
+	static Bool EndsWithCaseInsensitive(const WideChar* str, const WideChar* suffix);
 
 private:
 	Bool m_miniDumpInitialized;

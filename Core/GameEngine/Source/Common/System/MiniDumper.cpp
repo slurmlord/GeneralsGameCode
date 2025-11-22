@@ -20,6 +20,7 @@
 
 #ifdef RTS_ENABLE_CRASHDUMP
 #include "Common/MiniDumper.h"
+#include <wctype.h>
 #include "Common/GameMemory.h"
 #include "gitinfo.h"
 
@@ -78,7 +79,7 @@ MiniDumper::MiniDumper()
 	m_executablePath[0] = 0;
 };
 
-LONG WINAPI MiniDumper::DumpingExceptionFilter(struct _EXCEPTION_POINTERS* e_info)
+LONG WINAPI MiniDumper::DumpingExceptionFilter(_EXCEPTION_POINTERS* e_info)
 {
 	// Store the exception info in the global variables for later use by the dumping thread
 	g_exceptionRecord = *(e_info->ExceptionRecord);
@@ -109,7 +110,7 @@ void MiniDumper::TriggerMiniDump(DumpType dumpType)
 	}
 }
 
-void MiniDumper::TriggerMiniDumpForException(struct _EXCEPTION_POINTERS* e_info, DumpType dumpType)
+void MiniDumper::TriggerMiniDumpForException(_EXCEPTION_POINTERS* e_info, DumpType dumpType)
 {
 	if (!m_miniDumpInitialized)
 	{
@@ -247,21 +248,21 @@ void MiniDumper::ShutdownDumpThread()
 		::SetEvent(m_quitting);
 
 		DWORD waitRet = ::WaitForSingleObject(m_dumpThread, 3000);
-		if (waitRet != WAIT_OBJECT_0)
+		switch (waitRet)
 		{
-			if (waitRet == WAIT_TIMEOUT)
-			{
-				DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for dumping thread to exit timed out, killing thread", waitRet));
-				::TerminateThread(m_dumpThread, DUMPER_EXIT_FORCED_TERMINATE);
-			}
-			else if (waitRet == WAIT_FAILED)
-			{
-				DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for minidump triggering failed: status=%u, error=%u", waitRet, ::GetLastError()));
-			}
-			else
-			{
-				DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for minidump triggering failed: status=%u", waitRet));
-			}
+		case WAIT_OBJECT_0:
+			// Wait for thread exit was successful
+			break;
+		case WAIT_TIMEOUT:
+			DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for dumping thread to exit timed out, killing thread", waitRet));
+			::TerminateThread(m_dumpThread, DUMPER_EXIT_FORCED_TERMINATE);
+			break;
+		case WAIT_FAILED:
+			DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for minidump triggering failed: status=%u, error=%u", waitRet, ::GetLastError()));
+			break;
+		default:
+			DEBUG_LOG(("MiniDumper::ShutdownDumpThread: Waiting for minidump triggering failed: status=%u", waitRet));
+			break;
 		}
 	}
 }
@@ -310,30 +311,23 @@ DWORD MiniDumper::ThreadProcInternal()
 	{
 		HANDLE waitEvents[2] = { m_dumpRequested, m_quitting };
 		DWORD event = ::WaitForMultipleObjects(ARRAY_SIZE(waitEvents), waitEvents, FALSE, INFINITE);
-		if (event == WAIT_OBJECT_0 + 0)
+		switch (event)
 		{
+		case WAIT_OBJECT_0 + 0:
 			// A dump is requested (m_dumpRequested)
 			::ResetEvent(m_dumpComplete);
 			CreateMiniDump(m_requestedDumpType);
 			::ResetEvent(m_dumpRequested);
 			::SetEvent(m_dumpComplete);
-		}
-		else if (event == WAIT_OBJECT_0 + 1)
-		{
+			break;
+		case WAIT_OBJECT_0 + 1:
 			// Quit (m_quitting)
 			return DUMPER_EXIT_SUCCESS;
-		}
-		else
-		{
-			if (event == WAIT_FAILED)
-			{
-				DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed: status=%u, error=%u", event, ::GetLastError()));
-			}
-			else
-			{
-				DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed: status=%u", event));
-			}
-
+		case WAIT_FAILED:
+			DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed: status=%u, error=%u", event, ::GetLastError()));
+			return DUMPER_EXIT_FAILURE_WAIT;
+		default:
+			DEBUG_LOG(("MiniDumper::ThreadProcInternal: Waiting for events failed: status=%u", event));
 			return DUMPER_EXIT_FAILURE_WAIT;
 		}
 	}
@@ -371,7 +365,7 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		sysTime.wDay, sysTime.wHour, sysTime.wMinute, sysTime.wSecond,
 		GitShortSHA1, currentProcessId);
 
-	HANDLE dumpFile = CreateFile(m_dumpFile, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE dumpFile = ::CreateFile(m_dumpFile, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (dumpFile == NULL || dumpFile == INVALID_HANDLE_VALUE)
 	{
 		DEBUG_LOG(("MiniDumper::CreateMiniDump: Unable to create dump file '%s': error=%u", m_dumpFile, ::GetLastError()));
@@ -446,6 +440,26 @@ BOOL CALLBACK MiniDumper::MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBA
 	return dumper->CallbackInternal(*CallbackInput, *CallbackOutput);
 }
 
+Bool MiniDumper::ShouldWriteDataSegsForModule(const PWCHAR module) const
+{
+	// Only include data segments for the game, ntdll and kernel32 modules to keep dump size low
+	constexpr const static WideChar* wanted_modules[] = { L"ntdll.dll", L"kernel32.dll"};
+	if (EndsWithCaseInsensitive(module, m_executablePath))
+	{
+		return true;
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(wanted_modules); ++i)
+	{
+		if (EndsWithCaseInsensitive(module, wanted_modules[i]))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // This is where the memory regions and things are being filtered
 BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP_CALLBACK_OUTPUT& output)
 {
@@ -456,12 +470,9 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		retVal = TRUE;
 		break;
 	case ModuleCallback:
-	{
-		// Only include data segments for the game and ntdll modules to keep dump size low
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
 		{
-			if (::StrCmpIW(input.Module.FullPath, m_executablePath) && !::StrStrIW(input.Module.FullPath, L"ntdll.dll") &&
-				!::StrStrIW(input.Module.FullPath, L"kernel32.dll"))
+			if (!ShouldWriteDataSegsForModule(input.Module.FullPath))
 			{
 				// Exclude data segments for the module
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
@@ -470,7 +481,6 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 
 		retVal = TRUE;
 		break;
-	}
 	case IncludeThreadCallback:
 		// We want all threads except the dumping thread
 		if (input.IncludeThread.ThreadId == m_dumpThreadId)
@@ -485,7 +495,6 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		retVal = TRUE;
 		break;
 	case MemoryCallback:
-	{
 #ifndef DISABLE_GAMEMEMORY
 		do
 		{
@@ -496,14 +505,11 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		retVal = FALSE;
 #endif
 		break;
-	}
 	case ReadMemoryFailureCallback:
-	{
 		DEBUG_LOG(("MiniDumper::CallbackInternal: ReadMemoryFailure with MemoryBase=%llu, MemorySize=%lu: error=%u",
 			input.ReadMemoryFailure.Offset, input.ReadMemoryFailure.Bytes, input.ReadMemoryFailure.FailureStatus));
 		retVal = TRUE;
 		break;
-	}
 	case CancelCallback:
 		output.Cancel = FALSE;
 		output.CheckCancel = FALSE;
@@ -700,5 +706,27 @@ void MiniDumper::KeepNewestFiles(const std::string& directory, const DumpType du
 			DEBUG_LOG(("MiniDumper::KeepNewestFiles: Failed to delete file '%s': error=%u", files[i].name.c_str(), ::GetLastError()));
 		}
 	}
+}
+
+bool MiniDumper::EndsWithCaseInsensitive(const WideChar* str, const WideChar* suffix)
+{
+	size_t strlen = wcslen(str);
+	size_t sufflen = wcslen(suffix);
+	if (sufflen > strlen)
+	{
+		return false;
+	}
+
+	for (size_t index = 0; index < sufflen; ++index)
+	{
+		WideChar suffchar = towlower(suffix[index]);
+		WideChar strchar = towlower(str[strlen - sufflen + index]);
+		if (suffchar != strchar)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 #endif
