@@ -70,9 +70,9 @@ MiniDumper::MiniDumper()
 	m_dumpThread = NULL;
 	m_dumpThreadId = 0;
 #ifndef DISABLE_GAMEMEMORY
-	m_dumpObjectsState = 0;
+	m_dumpObjectsState = MEMORY_POOLS;
 	m_dumpObjectsSubState = 0;
-	m_dmaRawBlockIndex = 0;
+	m_currentAllocator = NULL;
 #endif
 	m_dumpDir[0] = 0;
 	m_dumpFile[0] = 0;
@@ -372,6 +372,8 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		return;
 	}
 
+	m_dumpObjectsState = MEMORY_POOLS;
+
 	PMINIDUMP_EXCEPTION_INFORMATION exceptionInfoPtr = NULL;
 	MINIDUMP_EXCEPTION_INFORMATION exceptionInfo = { 0 };
 	if (g_dumpException != NULL)
@@ -463,11 +465,12 @@ Bool MiniDumper::ShouldWriteDataSegsForModule(const PWCHAR module) const
 // This is where the memory regions and things are being filtered
 BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP_CALLBACK_OUTPUT& output)
 {
-	BOOL retVal = TRUE;
+	BOOL success = TRUE;
 	switch (input.CallbackType)
 	{
 	case IncludeModuleCallback:
-		retVal = TRUE;
+	case ThreadCallback:
+	case ThreadExCallback:
 		break;
 	case ModuleCallback:
 		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
@@ -478,63 +481,53 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
 			}
 		}
-
-		retVal = TRUE;
 		break;
 	case IncludeThreadCallback:
 		// We want all threads except the dumping thread
 		if (input.IncludeThread.ThreadId == m_dumpThreadId)
 		{
-			retVal = FALSE;
+			output.ThreadWriteFlags &= (~ThreadWriteThread);
 		}
-		break;
-	case ThreadCallback:
-		retVal = TRUE;
-		break;
-	case ThreadExCallback:
-		retVal = TRUE;
 		break;
 	case MemoryCallback:
 #ifndef DISABLE_GAMEMEMORY
 		do
 		{
-			// DumpMemoryObjects will return false once it's completed, signalling the end of memory callbacks
-			retVal = DumpMemoryObjects(output.MemoryBase, output.MemorySize);
-		} while ((output.MemoryBase == NULL || output.MemorySize == NULL) && retVal == TRUE);
+			// DumpMemoryObjects will set outputMemorySize to 0 once it's completed, signalling the end of memory callbacks
+			DumpMemoryObjects(output.MemoryBase, output.MemorySize);
+		} while ((output.MemoryBase == 0 || output.MemorySize == 0) && m_dumpObjectsState != COMPLETED);
 #else
-		retVal = FALSE;
+		output.MemoryBase = 0;
+		output.MemorySize = 0;
 #endif
 		break;
 	case ReadMemoryFailureCallback:
 		DEBUG_LOG(("MiniDumper::CallbackInternal: ReadMemoryFailure with MemoryBase=%llu, MemorySize=%lu: error=%u",
 			input.ReadMemoryFailure.Offset, input.ReadMemoryFailure.Bytes, input.ReadMemoryFailure.FailureStatus));
-		retVal = TRUE;
 		break;
 	case CancelCallback:
 		output.Cancel = FALSE;
 		output.CheckCancel = FALSE;
-		retVal = TRUE;
 		break;
 	}
 
-	return retVal;
+	return success;
 }
 
 #ifndef DISABLE_GAMEMEMORY
-BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
+void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 {
-	BOOL moreToDo = TRUE;
 	// m_dumpObjectsState is used to keep track of the current "phase" of the memory dumping process
 	// m_dumpObjectsSubState is used to keep track of the progress within each phase, and is reset when advancing on to the next phase
 	switch (m_dumpObjectsState)
 	{
-	case 0:
+	case MEMORY_POOLS:
 	{
 		// Dump all the MemoryPool instances in TheMemoryPoolFactory
 		// This only dumps the metadata, not the actual MemoryPool contents (done in the next phase).
 		if (TheMemoryPoolFactory == NULL)
 		{
-			++m_dumpObjectsState;
+			m_dumpObjectsState = MEMORY_POOL_ALLOCATIONS;
 			break;
 		}
 
@@ -558,17 +551,17 @@ BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 		if (m_dumpObjectsSubState == poolCount)
 		{
 			m_dumpObjectsSubState = 0;
-			++m_dumpObjectsState;
+			m_dumpObjectsState = MEMORY_POOL_ALLOCATIONS;
 		}
 		break;
 	}
-	case 1:
+	case MEMORY_POOL_ALLOCATIONS:
 	{
 		// Iterate through all the allocations of memory pools and containing blobs that has been done via the memory pool factory
 		// and include all of the storage space allocated for objects
 		if (TheMemoryPoolFactory == NULL)
 		{
-			++m_dumpObjectsState;
+			m_dumpObjectsState = DMA_ALLOCATIONS;
 			break;
 		}
 
@@ -587,66 +580,61 @@ BOOL MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 
 		if (m_rangeIter == TheMemoryPoolFactory->cend())
 		{
-			++m_dumpObjectsState;
+			m_dumpObjectsState = DMA_ALLOCATIONS;
 			m_dumpObjectsSubState = 0;
 		}
 		break;
 	}
-	case 2:
+	case DMA_ALLOCATIONS:
 	{
 		// Iterate through all the direct allocations ("raw blocks") done by DMAs, as these are done outside of the
 		// memory pool factory allocations dumped in the previous phase.
 		if (TheDynamicMemoryAllocator == NULL)
 		{
-			++m_dumpObjectsState;
+			m_dumpObjectsState = COMPLETED;
 			break;
 		}
 
-		DynamicMemoryAllocator* allocator = TheDynamicMemoryAllocator;
-
-		//m_dumpObjectsSubState is used to track the index of the allocator we are currently traversing
-		for (int i = 0; i < m_dumpObjectsSubState; ++i)
+		if (m_currentAllocator == NULL)
 		{
-			allocator = allocator->getNextDmaInList();
+			m_currentAllocator = TheDynamicMemoryAllocator;
+			// m_dumpObjectsSubState is used to track the index of the raw block in the allocator we are currently traversing
+			m_dumpObjectsSubState = 0;
 		}
 
 		MemoryPoolAllocatedRange rawBlockRange = {0};
-		int rawBlocksInDma = allocator->getRawBlockCount();
-		if (m_dmaRawBlockIndex < rawBlocksInDma)
+		int rawBlocksInDma = m_currentAllocator->getRawBlockCount();
+		if (m_dumpObjectsSubState < rawBlocksInDma)
 		{
 			// Dump this block
-			allocator->fillAllocationRangeForRawBlockN(m_dmaRawBlockIndex, rawBlockRange);
+			m_currentAllocator->fillAllocationRangeForRawBlockN(m_dumpObjectsSubState, rawBlockRange);
 			memoryBase = reinterpret_cast<ULONG64>(rawBlockRange.allocationAddr);
 			memorySize = rawBlockRange.allocationSize;
-			++m_dmaRawBlockIndex;
+			++m_dumpObjectsSubState;
 		}
 
-		if (rawBlocksInDma == m_dmaRawBlockIndex)
+		if (rawBlocksInDma == m_dumpObjectsSubState)
 		{
 			// Advance to the next DMA
-			++m_dumpObjectsSubState;
-			m_dmaRawBlockIndex = 0;
-			if (allocator->getNextDmaInList() == NULL)
+			m_currentAllocator = m_currentAllocator->getNextDmaInList();
+			m_dumpObjectsSubState = 0;
+
+			if (m_currentAllocator == NULL)
 			{
 				// Done iterating through all the DMAs
-				m_dumpObjectsSubState = 0;
-				++m_dumpObjectsState;
+				m_dumpObjectsState = COMPLETED;
 			}
 		}
 		break;
 	}
 	default:
-		// Done, set "no more stuff" values
-		m_dumpObjectsState = 0;
+		// Done, set "no more regions to dump" values
+		m_dumpObjectsState = COMPLETED;
 		m_dumpObjectsSubState = 0;
-		m_dmaRawBlockIndex = 0;
 		memoryBase = 0;
 		memorySize = 0;
-		moreToDo = FALSE;
 		break;
 	}
-
-	return moreToDo;
 }
 #endif
 

@@ -39,6 +39,14 @@ enum MiniDumperExitCode CPP_11(: Int)
 	DUMPER_EXIT_FORCED_TERMINATE = 0x158B1154,
 };
 
+enum DumpObjectsState CPP_11(: Int)
+{
+	MEMORY_POOLS,
+	MEMORY_POOL_ALLOCATIONS,
+	DMA_ALLOCATIONS,
+	COMPLETED
+};
+
 class MiniDumper
 {
 public:
@@ -54,7 +62,7 @@ private:
 	void Initialize(const AsciiString& userDirPath);
 	void ShutDown();
 	void CreateMiniDump(DumpType dumpType);
-	BOOL DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
+	void DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
 	void CleanupResources();
 	Bool IsDumpThreadStillRunning() const;
 	void ShutdownDumpThread();
@@ -102,9 +110,9 @@ private:
 
 #ifndef DISABLE_GAMEMEMORY
 	// Internal memory dumping progress state
-	int m_dumpObjectsState;
-	int m_dumpObjectsSubState;
-	int m_dmaRawBlockIndex;
+	DumpObjectsState m_dumpObjectsState;
+	Int m_dumpObjectsSubState;
+	DynamicMemoryAllocator* m_currentAllocator;
 
 	AllocationRangeIterator m_rangeIter;
 #endif
