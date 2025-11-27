@@ -41,6 +41,7 @@ enum MiniDumperExitCode CPP_11(: Int)
 
 enum DumpObjectsState CPP_11(: Int)
 {
+	BEGIN,
 	MEMORY_POOLS,
 	MEMORY_POOL_ALLOCATIONS,
 	DMA_ALLOCATIONS,
@@ -111,8 +112,9 @@ private:
 #ifndef DISABLE_GAMEMEMORY
 	// Internal memory dumping progress state
 	DumpObjectsState m_dumpObjectsState;
-	Int m_dumpObjectsSubState;
 	DynamicMemoryAllocator* m_currentAllocator;
+	MemoryPool* m_currentPool;
+	MemoryPoolSingleBlock* m_currentSingleBlock;
 
 	AllocationRangeIterator m_rangeIter;
 #endif

@@ -445,7 +445,7 @@ public:
 	void setNextRawBlock(MemoryPoolSingleBlock *b);
 
 #if defined(MEMORYPOOL_DEBUG) || defined(RTS_ENABLE_CRASHDUMP)
-	Int debugGetLogicalSize();
+	Int debugGetLogicalSize() const;
 #endif
 #ifdef MEMORYPOOL_DEBUG
 	void debugIgnoreLeaksForThisBlock();
@@ -651,7 +651,7 @@ inline const char *MemoryPoolSingleBlock::debugGetLiteralTagString()
 /**
 	accessor
 */
-inline Int MemoryPoolSingleBlock::debugGetLogicalSize()
+inline Int MemoryPoolSingleBlock::debugGetLogicalSize() const
 {
 	//USE_PERF_TIMER(MemoryPoolDebugging) not worth it
 	return m_logicalSize;
@@ -2591,24 +2591,19 @@ void DynamicMemoryAllocator::debugDmaInfoReport( FILE *fp )
 #endif
 
 #ifdef RTS_ENABLE_CRASHDUMP
-Int DynamicMemoryAllocator::getRawBlockCount() const
+MemoryPoolSingleBlock* DynamicMemoryAllocator::getFirstRawBlock() const
 {
-	Int count = 0;
-	for (MemoryPoolSingleBlock* block = m_rawBlocks; block; block = block->getNextRawBlock())
-	{
-		++count;
-	}
-
-	return count;
+	return m_rawBlocks;
 }
-void DynamicMemoryAllocator::fillAllocationRangeForRawBlockN(const Int n, MemoryPoolAllocatedRange& allocationRange) const
+
+MemoryPoolSingleBlock* DynamicMemoryAllocator::getNextRawBlock(MemoryPoolSingleBlock* block) const
 {
-	MemoryPoolSingleBlock* block = m_rawBlocks;
-	for (int i = 0; i < n; ++i)
-	{
-		block = block->getNextRawBlock();
-	}
-	allocationRange.allocationAddr = reinterpret_cast<char*>(block);
+	return block->getNextRawBlock();
+}
+
+void DynamicMemoryAllocator::fillAllocationRangeForRawBlock(const MemoryPoolSingleBlock* block, MemoryPoolAllocatedRange& allocationRange) const
+{
+	allocationRange.allocationAddr = reinterpret_cast<const char*>(block);
 	allocationRange.allocationSize = block->calcRawBlockSize(block->debugGetLogicalSize());
 }
 #endif
@@ -3273,30 +3268,9 @@ void MemoryPoolFactory::debugMemoryReport(Int flags, Int startCheckpoint, Int en
 #endif
 
 #ifdef RTS_ENABLE_CRASHDUMP
-Int MemoryPoolFactory::getMemoryPoolCount() const
+MemoryPool* MemoryPoolFactory::getFirstMemoryPool() const
 {
-	Int count = 0;
-	MemoryPool* current = m_firstPoolInFactory;
-	while (current != NULL)
-	{
-		++count;
-		current = current->getNextPoolInList();
-	}
-
-	return count;
-}
-
-MemoryPool* MemoryPoolFactory::getMemoryPoolN(const Int n) const
-{
-	Int count = 0;
-	MemoryPool* current = m_firstPoolInFactory;
-	while (count < n && current != NULL)
-	{
-		++count;
-		current = current->getNextPoolInList();
-	}
-
-	return current;
+	return m_firstPoolInFactory;
 }
 
 AllocationRangeIterator::AllocationRangeIterator(const MemoryPoolFactory* factory)
@@ -3334,7 +3308,6 @@ void AllocationRangeIterator::MoveToNextBlob()
 		m_currentBlobInPool = NULL;
 	}
 }
-
 #endif
 
 //-----------------------------------------------------------------------------

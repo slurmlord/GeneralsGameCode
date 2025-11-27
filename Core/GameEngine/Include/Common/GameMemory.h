@@ -285,7 +285,7 @@ public:
 #ifdef RTS_ENABLE_CRASHDUMP
 struct MemoryPoolAllocatedRange
 {
-	char* allocationAddr;
+	const char* allocationAddr;
 	size_t allocationSize;
 };
 #endif
@@ -489,8 +489,9 @@ public:
 
 	#endif	// MEMORYPOOL_DEBUG
 #ifdef RTS_ENABLE_CRASHDUMP
-		Int getRawBlockCount() const;
-		void fillAllocationRangeForRawBlockN(const Int n, MemoryPoolAllocatedRange& allocationRange) const;
+		MemoryPoolSingleBlock* getFirstRawBlock() const;
+		MemoryPoolSingleBlock* getNextRawBlock(MemoryPoolSingleBlock* block) const;
+		void fillAllocationRangeForRawBlock(const MemoryPoolSingleBlock*, MemoryPoolAllocatedRange& allocationRange) const;
 #endif
 };
 
@@ -665,8 +666,7 @@ public:
 			return AllocationRangeIterator(NULL, NULL);
 		}
 
-		Int getMemoryPoolCount() const;
-		MemoryPool* getMemoryPoolN(const Int n) const;
+		MemoryPool* getFirstMemoryPool() const;
 		friend class AllocationRangeIterator;
 #endif
 };
