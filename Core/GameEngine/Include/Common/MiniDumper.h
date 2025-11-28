@@ -31,25 +31,25 @@ enum DumpType CPP_11(: Char)
 	DUMP_TYPE_FULL = 'F',
 };
 
-enum MiniDumperExitCode CPP_11(: Int)
-{
-	DUMPER_EXIT_SUCCESS = 0x0,
-	DUMPER_EXIT_FAILURE_WAIT = 0x37DA1040,
-	DUMPER_EXIT_FAILURE_PARAM = 0x4EA527BB,
-	DUMPER_EXIT_FORCED_TERMINATE = 0x158B1154,
-};
-
-enum DumpObjectsState CPP_11(: Int)
-{
-	BEGIN,
-	MEMORY_POOLS,
-	MEMORY_POOL_ALLOCATIONS,
-	DMA_ALLOCATIONS,
-	COMPLETED
-};
-
 class MiniDumper
 {
+	enum MiniDumperExitCode CPP_11(: Int)
+	{
+		DUMPER_EXIT_SUCCESS = 0x0,
+		DUMPER_EXIT_FAILURE_WAIT = 0x37DA1040,
+		DUMPER_EXIT_FAILURE_PARAM = 0x4EA527BB,
+		DUMPER_EXIT_FORCED_TERMINATE = 0x158B1154,
+	};
+
+	enum DumpObjectsState CPP_11(: Int)
+	{
+		DumpObjectsState_Begin,
+		DumpObjectsState_Memory_Pools,
+		DumpObjectsState_Memory_Pool_Allocations,
+		DumpObjectsState_DMA_Allocations,
+		DumpObjectsState_Completed
+	};
+
 public:
 	MiniDumper();
 	Bool IsInitialized() const;

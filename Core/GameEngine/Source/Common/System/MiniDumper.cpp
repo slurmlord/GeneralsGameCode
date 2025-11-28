@@ -70,7 +70,7 @@ MiniDumper::MiniDumper()
 	m_dumpThread = NULL;
 	m_dumpThreadId = 0;
 #ifndef DISABLE_GAMEMEMORY
-	m_dumpObjectsState = MEMORY_POOLS;
+	m_dumpObjectsState = DumpObjectsState_Begin;
 	m_currentAllocator = NULL;
 	m_currentSingleBlock = NULL;
 	m_currentPool = NULL;
@@ -373,7 +373,7 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		return;
 	}
 
-	m_dumpObjectsState = BEGIN;
+	m_dumpObjectsState = DumpObjectsState_Begin;
 
 	PMINIDUMP_EXCEPTION_INFORMATION exceptionInfoPtr = NULL;
 	MINIDUMP_EXCEPTION_INFORMATION exceptionInfo = { 0 };
@@ -492,11 +492,9 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 		break;
 	case MemoryCallback:
 #ifndef DISABLE_GAMEMEMORY
-		do
-		{
-			// DumpMemoryObjects will set outputMemorySize to 0 once it's completed, signalling the end of memory callbacks
-			DumpMemoryObjects(output.MemoryBase, output.MemorySize);
-		} while (output.MemorySize == 0 && m_dumpObjectsState != COMPLETED);
+		// DumpMemoryObjects will set output.MemorySize to 0 once it's completed,
+		// signalling to end the memory callbacks.
+		DumpMemoryObjects(output.MemoryBase, output.MemorySize);
 #else
 		output.MemoryBase = 0;
 		output.MemorySize = 0;
@@ -520,90 +518,89 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 #ifndef DISABLE_GAMEMEMORY
 void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 {
-	// m_dumpObjectsState is used to keep track of the current "phase" of the memory dumping process
-	// m_dumpObjectsSubState is used to keep track of the progress within each phase, and is reset when advancing on to the next phase
-	switch (m_dumpObjectsState)
+	memorySize = 0;
+	do
 	{
-	case BEGIN:
-		m_dumpObjectsState = MEMORY_POOLS;
-		if (TheMemoryPoolFactory)
+		// m_dumpObjectsState is used to keep track of the current "phase" of the memory dumping process
+		switch (m_dumpObjectsState)
 		{
-			m_currentPool = TheMemoryPoolFactory->getFirstMemoryPool();
-		}
-		break;
-	case MEMORY_POOLS:
-	{
-		// Dump all the MemoryPool instances in TheMemoryPoolFactory
-		// This only dumps the metadata, not the actual MemoryPool contents (done in the next phase).
-		if (m_currentPool == NULL)
-		{
-			m_dumpObjectsState = MEMORY_POOL_ALLOCATIONS;
+		case DumpObjectsState_Begin:
+			m_dumpObjectsState = DumpObjectsState_Memory_Pools;
 			if (TheMemoryPoolFactory)
 			{
+				m_currentPool = TheMemoryPoolFactory->getFirstMemoryPool();
 				m_rangeIter = TheMemoryPoolFactory->cbegin();
+				m_currentAllocator = TheDynamicMemoryAllocator;
+				if (m_currentAllocator)
+					m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
+			}
+			break;
+		case DumpObjectsState_Memory_Pools:
+		{
+			// Dump all the MemoryPool instances in TheMemoryPoolFactory
+			// This only dumps the metadata, not the actual MemoryPool contents (done in the next phase).
+			if (m_currentPool == NULL)
+			{
+				m_dumpObjectsState = DumpObjectsState_Memory_Pool_Allocations;
+				break;
+			}
+
+			memoryBase = reinterpret_cast<ULONG64>(m_currentPool);
+			memorySize = sizeof(MemoryPool);
+			m_currentPool = m_currentPool->getNextPoolInList();
+			break;
+		}
+		case DumpObjectsState_Memory_Pool_Allocations:
+		{
+			// Iterate through all the allocations of memory pools and containing blobs that has been done via the memory pool factory
+			// and include all of the storage space allocated for objects
+			if (!TheMemoryPoolFactory || m_rangeIter == TheMemoryPoolFactory->cend())
+			{
+				m_dumpObjectsState = DumpObjectsState_DMA_Allocations;
+				break;
+			}
+
+			memoryBase = reinterpret_cast<ULONG64>(m_rangeIter->allocationAddr);
+			memorySize = m_rangeIter->allocationSize;
+			++m_rangeIter;
+			break;
+		}
+		case DumpObjectsState_DMA_Allocations:
+		{
+			// Iterate through all the direct allocations ("raw blocks") done by DMAs, as these are done outside of the
+			// memory pool factory allocations dumped in the previous phase.
+			if (m_currentAllocator == NULL || m_currentSingleBlock == NULL)
+			{
+				m_dumpObjectsState = DumpObjectsState_Completed;
+				break;
+			}
+
+			MemoryPoolAllocatedRange rawBlockRange = { 0 };
+			m_currentAllocator->fillAllocationRangeForRawBlock(m_currentSingleBlock, rawBlockRange);
+			memoryBase = reinterpret_cast<ULONG64>(rawBlockRange.allocationAddr);
+			memorySize = rawBlockRange.allocationSize;
+			m_currentSingleBlock = m_currentAllocator->getNextRawBlock(m_currentSingleBlock);
+
+			if (m_currentSingleBlock == NULL)
+			{
+				m_currentAllocator = m_currentAllocator->getNextDmaInList();
+				if (m_currentAllocator)
+					m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
 			}
 			break;
 		}
-
-		memoryBase = reinterpret_cast<ULONG64>(m_currentPool);
-		memorySize = sizeof(MemoryPool);
-		m_currentPool = m_currentPool->getNextPoolInList();
-		break;
-	}
-	case MEMORY_POOL_ALLOCATIONS:
-	{
-		// Iterate through all the allocations of memory pools and containing blobs that has been done via the memory pool factory
-		// and include all of the storage space allocated for objects
-		if (m_rangeIter == TheMemoryPoolFactory->cend())
-		{
-			m_dumpObjectsState = DMA_ALLOCATIONS;
-			m_currentAllocator = TheDynamicMemoryAllocator;
-			m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
+		case DumpObjectsState_Completed:
+			// Done, set "no more regions to dump" values
+			memoryBase = 0;
+			memorySize = 0;
+			return;
+		default:
+			DEBUG_CRASH(("Invalid object state"));
 			break;
 		}
-
-		memoryBase = reinterpret_cast<ULONG64>(m_rangeIter->allocationAddr);
-		memorySize = m_rangeIter->allocationSize;
-		++m_rangeIter;
-		break;
-	}
-	case DMA_ALLOCATIONS:
-	{
-		// Iterate through all the direct allocations ("raw blocks") done by DMAs, as these are done outside of the
-		// memory pool factory allocations dumped in the previous phase.
-		if (m_currentAllocator == NULL)
-		{
-			m_dumpObjectsState = COMPLETED;
-			break;
-		}
-
-		if (m_currentSingleBlock == NULL)
-		{
-			// Iterated to a new allocator, start iterating over its blocks
-			m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
-		}
-
-		MemoryPoolAllocatedRange rawBlockRange = { 0 };
-		m_currentAllocator->fillAllocationRangeForRawBlock(m_currentSingleBlock, rawBlockRange);
-		memoryBase = reinterpret_cast<ULONG64>(rawBlockRange.allocationAddr);
-		memorySize = rawBlockRange.allocationSize;
-		m_currentSingleBlock = m_currentAllocator->getNextRawBlock(m_currentSingleBlock);
-
-		if (m_currentSingleBlock == NULL)
-		{
-			m_currentAllocator = m_currentAllocator->getNextDmaInList();
-		}
-		break;
-	}
-	case COMPLETED:
-		// Done, set "no more regions to dump" values
-		memoryBase = 0;
-		memorySize = 0;
-		break;
-	default:
-		DEBUG_CRASH(("Invalid object state"));
-		break;
-	}
+		// If memorySize is 0 we transitioned from one phase to the next.
+		// Go again so the memory block info gets populated in the new phase.
+	} while (memorySize == 0);
 }
 #endif
 
