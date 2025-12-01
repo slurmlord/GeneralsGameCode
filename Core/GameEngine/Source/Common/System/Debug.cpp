@@ -737,8 +737,8 @@ static void TriggerMiniDump()
 	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
 		// Do dumps both with and without extended info
-		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_MINIMAL);
-		TheMiniDumper->TriggerMiniDump(DUMP_TYPE_GAMEMEMORY);
+		TheMiniDumper->TriggerMiniDump(DumpType_Minimal);
+		TheMiniDumper->TriggerMiniDump(DumpType_Gamememory);
 	}
 
 	MiniDumper::shutdownMiniDumper();

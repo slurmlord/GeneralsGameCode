@@ -41,7 +41,7 @@ add_feature_info(MemoryPoolDebugCheckBlockOwnership RTS_MEMORYPOOL_DEBUG_CHECK_B
 add_feature_info(MemoryPoolDebugIntenseDmaBookkeeping RTS_MEMORYPOOL_DEBUG_INTENSE_DMA_BOOKKEEPING "Build with Memory Pool intense DMA bookkeeping")
 
 # Memory dump features
-add_feature_info(CrashDumpEnable "RTS_CRASHDUMP_ENABLE" "Build with Crash Dumps")
+add_feature_info(CrashDumpEnable RTS_CRASHDUMP_ENABLE "Build with Crash Dumps")
 
 # Game Memory features
 if(NOT RTS_GAMEMEMORY_ENABLE)

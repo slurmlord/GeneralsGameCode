@@ -509,57 +509,31 @@ class AllocationRangeIterator
 
 public:
 
+	AllocationRangeIterator();
 	AllocationRangeIterator(const MemoryPoolFactory* factory);
-	AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob)
-	{
-		m_currentPool = &pool;
-		m_currentBlobInPool = &blob;
-		m_factory = NULL;
-		m_range = MemoryPoolAllocatedRange();
-	};
+	AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob);
+	AllocationRangeIterator(MemoryPool* pool, MemoryPoolBlob* blob);
 
-	AllocationRangeIterator(MemoryPool* pool, MemoryPoolBlob* blob)
-	{
-		m_currentPool = pool;
-		m_currentBlobInPool = blob;
-		m_factory = NULL;
-		m_range = MemoryPoolAllocatedRange();
-	};
-
-	AllocationRangeIterator()
-	{
-		m_currentPool = NULL;
-		m_currentBlobInPool = NULL;
-		m_factory = NULL;
-		m_range = MemoryPoolAllocatedRange();
-	};
-
-	reference operator*() { UpdateRange(); return m_range; }
-	pointer operator->() { UpdateRange(); return &m_range; }
+	reference operator*() { return m_range; }
+	pointer operator->() { return &m_range; }
 
 	// Prefix increment
-	AllocationRangeIterator& operator++() { MoveToNextBlob(); return *this; }
+	AllocationRangeIterator& operator++();
 
 	// Postfix increment
-	AllocationRangeIterator operator++(int) { AllocationRangeIterator tmp = *this; ++(*this); return tmp; }
+	AllocationRangeIterator operator++(int);
 
-	friend const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
-	{
-		return a.m_currentBlobInPool == b.m_currentBlobInPool;
-	};
-
-	friend const bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
-	{
-		return a.m_currentBlobInPool != b.m_currentBlobInPool;
-	};
+	friend const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b);
+	friend const bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b);
 
 private:
+
+	void updateRange();
+	void moveToNextBlob();
 	const MemoryPoolFactory* m_factory;
 	MemoryPool* m_currentPool;
 	MemoryPoolBlob* m_currentBlobInPool;
 	MemoryPoolAllocatedRange m_range;
-	void UpdateRange();
-	void MoveToNextBlob();
 };
 #endif
 

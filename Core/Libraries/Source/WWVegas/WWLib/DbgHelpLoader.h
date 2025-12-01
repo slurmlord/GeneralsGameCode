@@ -126,16 +126,6 @@ public:
 private:
 
 	static void freeResources();
-#ifdef RTS_ENABLE_CRASHDUMP
-	typedef BOOL(WINAPI* MiniDumpWriteDump_t)(
-		HANDLE hProcess,
-		DWORD ProcessId,
-		HANDLE hFile,
-		MINIDUMP_TYPE DumpType,
-		PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-		PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-		PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
-#endif
 
 	typedef BOOL (WINAPI *SymInitialize_t) (
 		HANDLE hProcess,

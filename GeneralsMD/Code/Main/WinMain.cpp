@@ -770,8 +770,8 @@ static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info 
 	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
 		// Do dumps both with and without extended info
-		TheMiniDumper->TriggerMiniDumpForException(e_info, DUMP_TYPE_MINIMAL);
-		TheMiniDumper->TriggerMiniDumpForException(e_info, DUMP_TYPE_GAMEMEMORY);
+		TheMiniDumper->TriggerMiniDumpForException(e_info, DumpType_Minimal);
+		TheMiniDumper->TriggerMiniDumpForException(e_info, DumpType_Gamememory);
 	}
 
 	MiniDumper::shutdownMiniDumper();

@@ -2606,6 +2606,7 @@ void DynamicMemoryAllocator::fillAllocationRangeForRawBlock(const MemoryPoolSing
 	allocationRange.allocationAddr = reinterpret_cast<const char*>(block);
 	allocationRange.allocationSize = block->calcRawBlockSize(block->debugGetLogicalSize());
 }
+
 #endif
 
 //-----------------------------------------------------------------------------
@@ -3273,21 +3274,70 @@ MemoryPool* MemoryPoolFactory::getFirstMemoryPool() const
 	return m_firstPoolInFactory;
 }
 
-AllocationRangeIterator::AllocationRangeIterator(const MemoryPoolFactory* factory)
+//-----------------------------------------------------------------------------
+// METHODS for AllocationRangeIterator
+//-----------------------------------------------------------------------------
+
+AllocationRangeIterator::AllocationRangeIterator()
 {
-	m_factory = factory;
-	m_currentPool = factory->m_firstPoolInFactory;
-	m_currentBlobInPool = m_currentPool->m_firstBlob;
+	m_currentPool = NULL;
+	m_currentBlobInPool = NULL;
+	m_factory = NULL;
 	m_range = MemoryPoolAllocatedRange();
 }
 
-void AllocationRangeIterator::UpdateRange()
+AllocationRangeIterator::AllocationRangeIterator(const MemoryPoolFactory* factory)
 {
+	m_factory = factory;
+	if (factory)
+	{
+		m_currentPool = factory->m_firstPoolInFactory;
+		m_currentBlobInPool = m_currentPool ? m_currentPool->m_firstBlob : NULL;
+	}
+	else
+	{
+		m_currentPool = NULL;
+		m_currentBlobInPool = NULL;
+	}
+
+	m_range = MemoryPoolAllocatedRange();
+}
+
+AllocationRangeIterator::AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob)
+{
+	m_currentPool = &pool;
+	m_currentBlobInPool = &blob;
+	m_factory = NULL;
+	m_range = MemoryPoolAllocatedRange();
+}
+
+AllocationRangeIterator::AllocationRangeIterator(MemoryPool* pool, MemoryPoolBlob* blob)
+{
+	m_currentPool = pool;
+	m_currentBlobInPool = blob;
+	m_factory = NULL;
+	m_range = MemoryPoolAllocatedRange();
+}
+
+void AllocationRangeIterator::updateRange()
+{
+	if (m_currentBlobInPool == NULL)
+	{
+		m_range.allocationAddr = nullptr;
+		m_range.allocationSize = 0;
+		return;
+	}
+
 	m_currentBlobInPool->fillAllocatedRange(m_range);
 }
 
-void AllocationRangeIterator::MoveToNextBlob()
+void AllocationRangeIterator::moveToNextBlob()
 {
+	if (m_currentBlobInPool == NULL)
+	{
+		return;
+	}
+
 	// Advances to the next blob, advancing to the next MemoryPool if needed.
 	m_currentBlobInPool = m_currentBlobInPool->getNextInList();
 	if (m_currentBlobInPool != NULL)
@@ -3307,6 +3357,22 @@ void AllocationRangeIterator::MoveToNextBlob()
 	{
 		m_currentBlobInPool = NULL;
 	}
+}
+
+// Prefix increment
+AllocationRangeIterator& AllocationRangeIterator::operator++() { moveToNextBlob(); updateRange(); return *this; }
+
+// Postfix increment
+AllocationRangeIterator AllocationRangeIterator::operator++(int) { AllocationRangeIterator tmp = *this; ++(*this); return tmp; }
+
+const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
+{
+	return a.m_currentBlobInPool == b.m_currentBlobInPool;
+}
+
+const bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
+{
+	return a.m_currentBlobInPool != b.m_currentBlobInPool;
 }
 #endif
 

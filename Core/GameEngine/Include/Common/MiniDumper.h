@@ -24,29 +24,29 @@
 enum DumpType CPP_11(: Char)
 {
 	// Smallest dump type with call stacks and some supporting variables
-	DUMP_TYPE_MINIMAL = 'M',
-	// Large dump including all memory regions allocated by the GameMemory implementaion
-	DUMP_TYPE_GAMEMEMORY = 'X',
+	DumpType_Minimal = 'M',
+	// Large dump including all memory regions allocated by the GameMemory implementation
+	DumpType_Gamememory = 'X',
 	// Largest dump size including complete memory contents of the process
-	DUMP_TYPE_FULL = 'F',
+	DumpType_Full = 'F',
 };
 
 class MiniDumper
 {
 	enum MiniDumperExitCode CPP_11(: Int)
 	{
-		DUMPER_EXIT_SUCCESS = 0x0,
-		DUMPER_EXIT_FAILURE_WAIT = 0x37DA1040,
-		DUMPER_EXIT_FAILURE_PARAM = 0x4EA527BB,
-		DUMPER_EXIT_FORCED_TERMINATE = 0x158B1154,
+		MiniDumperExitCode_Success = 0x0,
+		MiniDumperExitCode_FailureWait = 0x37DA1040,
+		MiniDumperExitCode_FailureParam = 0x4EA527BB,
+		MiniDumperExitCode_ForcedTerminate = 0x158B1154,
 	};
 
 	enum DumpObjectsState CPP_11(: Int)
 	{
 		DumpObjectsState_Begin,
-		DumpObjectsState_Memory_Pools,
-		DumpObjectsState_Memory_Pool_Allocations,
-		DumpObjectsState_DMA_Allocations,
+		DumpObjectsState_MemoryPools,
+		DumpObjectsState_MemoryPoolAllocations,
+		DumpObjectsState_DMAAllocations,
 		DumpObjectsState_Completed
 	};
 
