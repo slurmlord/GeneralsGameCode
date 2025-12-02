@@ -63,11 +63,15 @@ private:
 	void Initialize(const AsciiString& userDirPath);
 	void ShutDown();
 	void CreateMiniDump(DumpType dumpType);
-	void DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
 	void CleanupResources();
 	Bool IsDumpThreadStillRunning() const;
 	void ShutdownDumpThread();
 	Bool ShouldWriteDataSegsForModule(const PWCHAR module) const;
+#ifndef DISABLE_GAMEMEMORY
+	void MoveToNextAllocatorWithRawBlocks();
+	void MoveToNextSingleBlock();
+	void DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize);
+#endif
 
 	// Callbacks from dbghelp
 	static BOOL CALLBACK MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput);

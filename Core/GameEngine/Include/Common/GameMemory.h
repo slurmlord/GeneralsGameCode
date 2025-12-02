@@ -490,7 +490,7 @@ public:
 	#endif	// MEMORYPOOL_DEBUG
 #ifdef RTS_ENABLE_CRASHDUMP
 		MemoryPoolSingleBlock* getFirstRawBlock() const;
-		MemoryPoolSingleBlock* getNextRawBlock(MemoryPoolSingleBlock* block) const;
+		MemoryPoolSingleBlock* getNextRawBlock(const MemoryPoolSingleBlock* block) const;
 		void fillAllocationRangeForRawBlock(const MemoryPoolSingleBlock*, MemoryPoolAllocatedRange& allocationRange) const;
 #endif
 };
@@ -517,10 +517,7 @@ public:
 	reference operator*() { return m_range; }
 	pointer operator->() { return &m_range; }
 
-	// Prefix increment
 	AllocationRangeIterator& operator++();
-
-	// Postfix increment
 	AllocationRangeIterator operator++(int);
 
 	friend const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b);

@@ -441,7 +441,7 @@ public:
 
 	MemoryPoolSingleBlock *getNextFreeBlock();
 	void setNextFreeBlock(MemoryPoolSingleBlock *b);
-	MemoryPoolSingleBlock *getNextRawBlock();
+	MemoryPoolSingleBlock *getNextRawBlock() const;
 	void setNextRawBlock(MemoryPoolSingleBlock *b);
 
 #if defined(MEMORYPOOL_DEBUG) || defined(RTS_ENABLE_CRASHDUMP)
@@ -611,7 +611,7 @@ inline void MemoryPoolSingleBlock::setNextFreeBlock(MemoryPoolSingleBlock *b)
 	return the next raw block in this dma. this call assumes that the block
 	in question does NOT belong to a blob, and will assert if not.
 */
-inline MemoryPoolSingleBlock *MemoryPoolSingleBlock::getNextRawBlock()
+inline MemoryPoolSingleBlock *MemoryPoolSingleBlock::getNextRawBlock() const
 {
 	DEBUG_ASSERTCRASH(m_owningBlob == NULL, ("must be called on raw block"));
 	return m_nextBlock;
@@ -2596,7 +2596,7 @@ MemoryPoolSingleBlock* DynamicMemoryAllocator::getFirstRawBlock() const
 	return m_rawBlocks;
 }
 
-MemoryPoolSingleBlock* DynamicMemoryAllocator::getNextRawBlock(MemoryPoolSingleBlock* block) const
+MemoryPoolSingleBlock* DynamicMemoryAllocator::getNextRawBlock(const MemoryPoolSingleBlock* block) const
 {
 	return block->getNextRawBlock();
 }
@@ -3359,11 +3359,19 @@ void AllocationRangeIterator::moveToNextBlob()
 	}
 }
 
-// Prefix increment
-AllocationRangeIterator& AllocationRangeIterator::operator++() { moveToNextBlob(); updateRange(); return *this; }
+AllocationRangeIterator& AllocationRangeIterator::operator++()
+{
+	moveToNextBlob();
+	updateRange();
+	return *this;
+}
 
-// Postfix increment
-AllocationRangeIterator AllocationRangeIterator::operator++(int) { AllocationRangeIterator tmp = *this; ++(*this); return tmp; }
+AllocationRangeIterator AllocationRangeIterator::operator++(int)
+{
+	AllocationRangeIterator tmp = *this;
+	++(*this);
+	return tmp;
+}
 
 const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
 {

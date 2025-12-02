@@ -516,6 +516,32 @@ BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP
 }
 
 #ifndef DISABLE_GAMEMEMORY
+void MiniDumper::MoveToNextAllocatorWithRawBlocks()
+{
+	// Skip over DMAs that have no raw blocks
+	while (m_currentAllocator && !m_currentAllocator->getFirstRawBlock())
+	{
+		m_currentAllocator = m_currentAllocator->getNextDmaInList();
+	}
+
+	if (m_currentAllocator)
+	{
+		m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
+	}
+}
+
+void MiniDumper::MoveToNextSingleBlock()
+{
+	DEBUG_ASSERTCRASH(m_currentAllocator != NULL, ("MiniDumper::MoveToNextSingleBlock: m_currentAllocator is NULL"));
+	m_currentSingleBlock = m_currentAllocator->getNextRawBlock(m_currentSingleBlock);
+
+	if (m_currentSingleBlock == NULL)
+	{
+		m_currentAllocator = m_currentAllocator->getNextDmaInList();
+		MoveToNextAllocatorWithRawBlocks();
+	}
+}
+
 void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 {
 	memorySize = 0;
@@ -531,8 +557,7 @@ void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 				m_currentPool = TheMemoryPoolFactory->getFirstMemoryPool();
 				m_rangeIter = TheMemoryPoolFactory->cbegin();
 				m_currentAllocator = TheDynamicMemoryAllocator;
-				if (m_currentAllocator)
-					m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
+				MoveToNextAllocatorWithRawBlocks();
 			}
 			break;
 		case DumpObjectsState_MemoryPools:
@@ -569,7 +594,7 @@ void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 		{
 			// Iterate through all the direct allocations ("raw blocks") done by DMAs, as these are done outside of the
 			// memory pool factory allocations dumped in the previous phase.
-			if (m_currentAllocator == NULL || m_currentSingleBlock == NULL)
+			if (m_currentAllocator == NULL)
 			{
 				m_dumpObjectsState = DumpObjectsState_Completed;
 				break;
@@ -579,14 +604,7 @@ void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
 			m_currentAllocator->fillAllocationRangeForRawBlock(m_currentSingleBlock, rawBlockRange);
 			memoryBase = reinterpret_cast<ULONG64>(rawBlockRange.allocationAddr);
 			memorySize = rawBlockRange.allocationSize;
-			m_currentSingleBlock = m_currentAllocator->getNextRawBlock(m_currentSingleBlock);
-
-			if (m_currentSingleBlock == NULL)
-			{
-				m_currentAllocator = m_currentAllocator->getNextDmaInList();
-				if (m_currentAllocator)
-					m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
-			}
+			MoveToNextSingleBlock();
 			break;
 		}
 		case DumpObjectsState_Completed:
