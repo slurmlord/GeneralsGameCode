@@ -736,9 +736,9 @@ static void TriggerMiniDump()
 #ifdef RTS_ENABLE_CRASHDUMP
 	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
-		// Do dumps both with and without extended info
+		// Create both minimal and full memory dumps
 		TheMiniDumper->TriggerMiniDump(DumpType_Minimal);
-		TheMiniDumper->TriggerMiniDump(DumpType_Gamememory);
+		TheMiniDumper->TriggerMiniDump(DumpType_Full);
 	}
 
 	MiniDumper::shutdownMiniDumper();

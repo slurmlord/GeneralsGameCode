@@ -21,7 +21,6 @@
 #ifdef RTS_ENABLE_CRASHDUMP
 #include "Common/MiniDumper.h"
 #include <wctype.h>
-#include "Common/GameMemory.h"
 #include "gitinfo.h"
 
 // Globals for storing the pointer to the exception
@@ -69,12 +68,6 @@ MiniDumper::MiniDumper()
 	m_quitting = NULL;
 	m_dumpThread = NULL;
 	m_dumpThreadId = 0;
-#ifndef DISABLE_GAMEMEMORY
-	m_dumpObjectsState = DumpObjectsState_Begin;
-	m_currentAllocator = NULL;
-	m_currentSingleBlock = NULL;
-	m_currentPool = NULL;
-#endif
 	m_dumpDir[0] = 0;
 	m_dumpFile[0] = 0;
 	m_executablePath[0] = 0;
@@ -122,13 +115,6 @@ void MiniDumper::TriggerMiniDumpForException(_EXCEPTION_POINTERS* e_info, DumpTy
 	g_dumpException = e_info;
 	g_dumpExceptionThreadId = ::GetCurrentThreadId();
 	m_requestedDumpType = dumpType;
-#ifdef DISABLE_GAMEMEMORY
-	if (m_requestedDumpType == DUMP_TYPE_GAMEMEMORY)
-	{
-		// Dump the whole process if the game memory implementation is turned off
-		m_requestedDumpType = DUMP_TYPE_FULL;
-	}
-#endif
 
 	DEBUG_ASSERTCRASH(IsDumpThreadStillRunning(), ("MiniDumper::TriggerMiniDumpForException: Dumping thread has exited."));
 	::SetEvent(m_dumpRequested);
@@ -218,7 +204,6 @@ Bool MiniDumper::IsDumpThreadStillRunning() const
 
 Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 {
-	constexpr const Int MaxExtendedFileCount = 2;
 	constexpr const Int MaxFullFileCount = 2;
 	constexpr const Int MaxMiniFileCount = 10;
 
@@ -233,8 +218,7 @@ Bool MiniDumper::InitializeDumpDirectory(const AsciiString& userDirPath)
 		}
 	}
 
-	// Clean up old files (we keep a maximum of 10 small, 2 extended and 2 full)
-	KeepNewestFiles(m_dumpDir, DumpType_Gamememory, MaxExtendedFileCount);
+	// Clean up old files (we keep a maximum of 10 small, 2 full)
 	KeepNewestFiles(m_dumpDir, DumpType_Full, MaxFullFileCount);
 	KeepNewestFiles(m_dumpDir, DumpType_Minimal, MaxMiniFileCount);
 
@@ -349,7 +333,7 @@ DWORD WINAPI MiniDumper::MiniDumpThreadProc(LPVOID lpParam)
 
 void MiniDumper::CreateMiniDump(DumpType dumpType)
 {
-	// Create a unique dump file name, using the path from m_dumpDir, in m_dumpFile
+	// Create a unique dump file name, using the path from m_dumpDir, in m_dumpFile 
 	SYSTEMTIME sysTime;
 	::GetLocalTime(&sysTime);
 #if RTS_GENERALS
@@ -373,8 +357,6 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		return;
 	}
 
-	m_dumpObjectsState = DumpObjectsState_Begin;
-
 	PMINIDUMP_EXCEPTION_INFORMATION exceptionInfoPtr = NULL;
 	MINIDUMP_EXCEPTION_INFORMATION exceptionInfo = { 0 };
 	if (g_dumpException != NULL)
@@ -385,23 +367,12 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		exceptionInfoPtr = &exceptionInfo;
 	}
 
-	PMINIDUMP_CALLBACK_INFORMATION callbackInfoPtr = NULL;
-	MINIDUMP_CALLBACK_INFORMATION callBackInfo = { 0 };
-	if (dumpType == DumpType_Gamememory)
-	{
-		callBackInfo.CallbackRoutine = MiniDumpCallback;
-		callBackInfo.CallbackParam = this;
-		callbackInfoPtr = &callBackInfo;
-	}
-
 	int dumpTypeFlags = MiniDumpNormal;
 	switch (dumpType)
 	{
 	case DumpType_Full:
-		dumpTypeFlags |= MiniDumpWithFullMemory;
-		FALLTHROUGH;
-	case DumpType_Gamememory:
-		dumpTypeFlags |= MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpWithFullMemoryInfo | MiniDumpWithPrivateReadWriteMemory;
+		dumpTypeFlags |= MiniDumpWithFullMemory | MiniDumpWithDataSegs | MiniDumpWithHandleData |
+			MiniDumpWithThreadInfo | MiniDumpWithFullMemoryInfo | MiniDumpWithPrivateReadWriteMemory;
 		FALLTHROUGH;
 	case DumpType_Minimal:
 		dumpTypeFlags |= MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory;
@@ -416,7 +387,7 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 		miniDumpType,
 		exceptionInfoPtr,
 		NULL,
-		callbackInfoPtr);
+		NULL);
 
 	if (!success)
 	{
@@ -429,198 +400,6 @@ void MiniDumper::CreateMiniDump(DumpType dumpType)
 
 	::CloseHandle(dumpFile);
 }
-
-BOOL CALLBACK MiniDumper::MiniDumpCallback(PVOID CallbackParam, PMINIDUMP_CALLBACK_INPUT CallbackInput, PMINIDUMP_CALLBACK_OUTPUT CallbackOutput)
-{
-	if (CallbackParam == NULL || CallbackInput == NULL || CallbackOutput == NULL)
-	{
-		DEBUG_LOG(("MiniDumper::MiniDumpCallback: Required parameters were null; CallbackParam=%p, CallbackInput=%p, CallbackOutput=%p.",
-			CallbackParam, CallbackInput, CallbackOutput));
-		return false;
-	}
-
-	MiniDumper* dumper = static_cast<MiniDumper*>(CallbackParam);
-	return dumper->CallbackInternal(*CallbackInput, *CallbackOutput);
-}
-
-Bool MiniDumper::ShouldWriteDataSegsForModule(const PWCHAR module) const
-{
-	// Only include data segments for the game, ntdll and kernel32 modules to keep dump size low
-	static constexpr const WideChar* wanted_modules[] = { L"ntdll.dll", L"kernel32.dll"};
-	if (endsWithNoCase(module, m_executablePath))
-	{
-		return true;
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(wanted_modules); ++i)
-	{
-		if (endsWithNoCase(module, wanted_modules[i]))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-// This is where the memory regions and things are being filtered
-BOOL MiniDumper::CallbackInternal(const MINIDUMP_CALLBACK_INPUT& input, MINIDUMP_CALLBACK_OUTPUT& output)
-{
-	BOOL success = TRUE;
-	switch (input.CallbackType)
-	{
-	case IncludeModuleCallback:
-	case ThreadCallback:
-	case ThreadExCallback:
-		break;
-	case ModuleCallback:
-		if (output.ModuleWriteFlags & ModuleWriteDataSeg)
-		{
-			if (!ShouldWriteDataSegsForModule(input.Module.FullPath))
-			{
-				// Exclude data segments for the module
-				output.ModuleWriteFlags &= (~ModuleWriteDataSeg);
-			}
-		}
-		break;
-	case IncludeThreadCallback:
-		// We want all threads except the dumping thread
-		if (input.IncludeThread.ThreadId == m_dumpThreadId)
-		{
-			output.ThreadWriteFlags &= (~ThreadWriteThread);
-		}
-		break;
-	case MemoryCallback:
-#ifndef DISABLE_GAMEMEMORY
-		// DumpMemoryObjects will set output.MemorySize to 0 once it's completed,
-		// signalling to end the memory callbacks.
-		DumpMemoryObjects(output.MemoryBase, output.MemorySize);
-#else
-		output.MemoryBase = 0;
-		output.MemorySize = 0;
-#endif
-		break;
-	case ReadMemoryFailureCallback:
-		DEBUG_LOG(("MiniDumper::CallbackInternal: ReadMemoryFailure with MemoryBase=%llu, MemorySize=%lu: error=%u",
-			input.ReadMemoryFailure.Offset, input.ReadMemoryFailure.Bytes, input.ReadMemoryFailure.FailureStatus));
-		break;
-	case CancelCallback:
-		// The cancel callback checks if the current minidump should be cancelled.
-		// Set output to never wish to cancel, nor to receive cancel callbacks in the future.
-		output.Cancel = FALSE;
-		output.CheckCancel = FALSE;
-		break;
-	}
-
-	return success;
-}
-
-#ifndef DISABLE_GAMEMEMORY
-void MiniDumper::MoveToNextAllocatorWithRawBlocks()
-{
-	// Skip over DMAs that have no raw blocks
-	while (m_currentAllocator && !m_currentAllocator->getFirstRawBlock())
-	{
-		m_currentAllocator = m_currentAllocator->getNextDmaInList();
-	}
-
-	if (m_currentAllocator)
-	{
-		m_currentSingleBlock = m_currentAllocator->getFirstRawBlock();
-	}
-}
-
-void MiniDumper::MoveToNextSingleBlock()
-{
-	DEBUG_ASSERTCRASH(m_currentAllocator != NULL, ("MiniDumper::MoveToNextSingleBlock: m_currentAllocator is NULL"));
-	m_currentSingleBlock = m_currentAllocator->getNextRawBlock(m_currentSingleBlock);
-
-	if (m_currentSingleBlock == NULL)
-	{
-		m_currentAllocator = m_currentAllocator->getNextDmaInList();
-		MoveToNextAllocatorWithRawBlocks();
-	}
-}
-
-void MiniDumper::DumpMemoryObjects(ULONG64& memoryBase, ULONG& memorySize)
-{
-	memorySize = 0;
-	do
-	{
-		// m_dumpObjectsState is used to keep track of the current "phase" of the memory dumping process
-		switch (m_dumpObjectsState)
-		{
-		case DumpObjectsState_Begin:
-			m_dumpObjectsState = DumpObjectsState_MemoryPools;
-			if (TheMemoryPoolFactory)
-			{
-				m_currentPool = TheMemoryPoolFactory->getFirstMemoryPool();
-				m_rangeIter = TheMemoryPoolFactory->cbegin();
-				m_currentAllocator = TheDynamicMemoryAllocator;
-				MoveToNextAllocatorWithRawBlocks();
-			}
-			break;
-		case DumpObjectsState_MemoryPools:
-		{
-			// Dump all the MemoryPool instances in TheMemoryPoolFactory
-			// This only dumps the metadata, not the actual MemoryPool contents (done in the next phase).
-			if (m_currentPool == NULL)
-			{
-				m_dumpObjectsState = DumpObjectsState_MemoryPoolAllocations;
-				break;
-			}
-
-			memoryBase = reinterpret_cast<ULONG64>(m_currentPool);
-			memorySize = sizeof(MemoryPool);
-			m_currentPool = m_currentPool->getNextPoolInList();
-			break;
-		}
-		case DumpObjectsState_MemoryPoolAllocations:
-		{
-			// Iterate through all the allocations of memory pools and containing blobs that has been done via the memory pool factory
-			// and include all of the storage space allocated for objects
-			if (!TheMemoryPoolFactory || m_rangeIter == TheMemoryPoolFactory->cend())
-			{
-				m_dumpObjectsState = DumpObjectsState_DMAAllocations;
-				break;
-			}
-
-			memoryBase = reinterpret_cast<ULONG64>(m_rangeIter->allocationAddr);
-			memorySize = m_rangeIter->allocationSize;
-			++m_rangeIter;
-			break;
-		}
-		case DumpObjectsState_DMAAllocations:
-		{
-			// Iterate through all the direct allocations ("raw blocks") done by DMAs, as these are done outside of the
-			// memory pool factory allocations dumped in the previous phase.
-			if (m_currentAllocator == NULL)
-			{
-				m_dumpObjectsState = DumpObjectsState_Completed;
-				break;
-			}
-
-			MemoryPoolAllocatedRange rawBlockRange;
-			m_currentAllocator->fillAllocationRangeForRawBlock(m_currentSingleBlock, rawBlockRange);
-			memoryBase = reinterpret_cast<ULONG64>(rawBlockRange.allocationAddr);
-			memorySize = rawBlockRange.allocationSize;
-			MoveToNextSingleBlock();
-			break;
-		}
-		case DumpObjectsState_Completed:
-			// Done, set "no more regions to dump" values
-			memoryBase = 0;
-			memorySize = 0;
-			return;
-		default:
-			DEBUG_CRASH(("Invalid object state"));
-			break;
-		}
-		// If memorySize is 0 we transitioned from one phase to the next.
-		// Go again so the memory block info gets populated in the new phase.
-	} while (memorySize == 0);
-}
-#endif
 
 // Comparator for sorting files by last modified time (newest first)
 bool MiniDumper::CompareByLastWriteTime(const FileInfo& a, const FileInfo& b)

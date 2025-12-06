@@ -747,9 +747,9 @@ static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info 
 #ifdef RTS_ENABLE_CRASHDUMP
 	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
-		// Do dumps both with and without extended info
+		// Create both minimal and full memory dumps
 		TheMiniDumper->TriggerMiniDumpForException(e_info, DumpType_Minimal);
-		TheMiniDumper->TriggerMiniDumpForException(e_info, DumpType_Gamememory);
+		TheMiniDumper->TriggerMiniDumpForException(e_info, DumpType_Full);
 	}
 
 	MiniDumper::shutdownMiniDumper();

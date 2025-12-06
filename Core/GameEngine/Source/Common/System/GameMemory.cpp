@@ -408,11 +408,9 @@ private:
 #ifdef MEMORYPOOL_BOUNDINGWALL
 	Int										m_wallPattern;			///< unique seed value for the bounding-walls for this block
 #endif
-#if defined(MEMORYPOOL_DEBUG) || defined(RTS_ENABLE_CRASHDUMP)
-	Int										m_logicalSize;						///< logical size of block (not including overhead, walls, etc.)
-#endif
 #ifdef MEMORYPOOL_DEBUG
 	const char						*m_debugLiteralTagString;	///< ptr to the tagstring for this block.
+	Int										m_logicalSize;						///< logical size of block (not including overhead, walls, etc.)
 	Int										m_wastedSize;							///< if allocated via DMA, the "wasted" bytes
 	Short									m_magicCookie;						///< magic value used to verify that the block is one of ours (as opposed to random pointer)
 	Short									m_debugFlags;							///< misc flags
@@ -441,15 +439,13 @@ public:
 
 	MemoryPoolSingleBlock *getNextFreeBlock();
 	void setNextFreeBlock(MemoryPoolSingleBlock *b);
-	MemoryPoolSingleBlock *getNextRawBlock() const;
+	MemoryPoolSingleBlock *getNextRawBlock();
 	void setNextRawBlock(MemoryPoolSingleBlock *b);
 
-#if defined(MEMORYPOOL_DEBUG) || defined(RTS_ENABLE_CRASHDUMP)
-	Int debugGetLogicalSize() const;
-#endif
 #ifdef MEMORYPOOL_DEBUG
 	void debugIgnoreLeaksForThisBlock();
 	const char *debugGetLiteralTagString();
+	Int debugGetLogicalSize();
 	Int debugGetWastedSize();
 	void debugSetWastedSize(Int waste);
 	void debugVerifyBlock();
@@ -504,9 +500,6 @@ public:
 #endif
 #ifdef MEMORYPOOL_CHECKPOINTING
 	void debugResetCheckpoints();
-#endif
-#ifdef RTS_ENABLE_CRASHDUMP
-	void fillAllocatedRange(MemoryPoolAllocatedRange& range);
 #endif
 
 };
@@ -611,7 +604,7 @@ inline void MemoryPoolSingleBlock::setNextFreeBlock(MemoryPoolSingleBlock *b)
 	return the next raw block in this dma. this call assumes that the block
 	in question does NOT belong to a blob, and will assert if not.
 */
-inline MemoryPoolSingleBlock *MemoryPoolSingleBlock::getNextRawBlock() const
+inline MemoryPoolSingleBlock *MemoryPoolSingleBlock::getNextRawBlock()
 {
 	DEBUG_ASSERTCRASH(m_owningBlob == NULL, ("must be called on raw block"));
 	return m_nextBlock;
@@ -647,11 +640,11 @@ inline const char *MemoryPoolSingleBlock::debugGetLiteralTagString()
 }
 #endif
 
-#if defined(MEMORYPOOL_DEBUG) || defined(RTS_ENABLE_CRASHDUMP)
+#ifdef MEMORYPOOL_DEBUG
 /**
 	accessor
 */
-inline Int MemoryPoolSingleBlock::debugGetLogicalSize() const
+inline Int MemoryPoolSingleBlock::debugGetLogicalSize()
 {
 	//USE_PERF_TIMER(MemoryPoolDebugging) not worth it
 	return m_logicalSize;
@@ -882,8 +875,6 @@ void MemoryPoolSingleBlock::initBlock(Int logicalSize, MemoryPoolBlob *owningBlo
 	}
 #endif
 }
-#elif defined(RTS_ENABLE_CRASHDUMP)
-	m_logicalSize = logicalSize;
 #endif // MEMORYPOOL_DEBUG
 
 #ifdef MEMORYPOOL_CHECKPOINTING
@@ -1388,14 +1379,6 @@ void MemoryPoolBlob::debugResetCheckpoints()
 		MemoryPoolSingleBlock *block = (MemoryPoolSingleBlock *)blockData;
 		block->debugResetCheckpoint();
 	}
-}
-#endif
-
-#ifdef RTS_ENABLE_CRASHDUMP
-void MemoryPoolBlob::fillAllocatedRange(MemoryPoolAllocatedRange& range)
-{
-	range.allocationAddr = m_blockData;
-	range.allocationSize = m_totalBlocksInBlob * MemoryPoolSingleBlock::calcRawBlockSize(m_owningPool->getAllocationSize());
 }
 #endif
 
@@ -2590,25 +2573,6 @@ void DynamicMemoryAllocator::debugDmaInfoReport( FILE *fp )
 }
 #endif
 
-#ifdef RTS_ENABLE_CRASHDUMP
-MemoryPoolSingleBlock* DynamicMemoryAllocator::getFirstRawBlock() const
-{
-	return m_rawBlocks;
-}
-
-MemoryPoolSingleBlock* DynamicMemoryAllocator::getNextRawBlock(const MemoryPoolSingleBlock* block) const
-{
-	return block->getNextRawBlock();
-}
-
-void DynamicMemoryAllocator::fillAllocationRangeForRawBlock(const MemoryPoolSingleBlock* block, MemoryPoolAllocatedRange& allocationRange) const
-{
-	allocationRange.allocationAddr = reinterpret_cast<const char*>(block);
-	allocationRange.allocationSize = block->calcRawBlockSize(block->debugGetLogicalSize());
-}
-
-#endif
-
 //-----------------------------------------------------------------------------
 // METHODS for MemoryPoolFactory
 //-----------------------------------------------------------------------------
@@ -3265,122 +3229,6 @@ void MemoryPoolFactory::debugMemoryReport(Int flags, Int startCheckpoint, Int en
 #ifdef ALLOW_DEBUG_UTILS
 	DebugSetFlags(oldFlags);
 #endif
-}
-#endif
-
-#ifdef RTS_ENABLE_CRASHDUMP
-MemoryPool* MemoryPoolFactory::getFirstMemoryPool() const
-{
-	return m_firstPoolInFactory;
-}
-
-//-----------------------------------------------------------------------------
-// METHODS for AllocationRangeIterator
-//-----------------------------------------------------------------------------
-
-AllocationRangeIterator::AllocationRangeIterator()
-{
-	m_currentPool = NULL;
-	m_currentBlobInPool = NULL;
-	m_factory = NULL;
-	m_range = MemoryPoolAllocatedRange();
-}
-
-AllocationRangeIterator::AllocationRangeIterator(const MemoryPoolFactory* factory)
-{
-	m_factory = factory;
-	if (factory)
-	{
-		m_currentPool = factory->m_firstPoolInFactory;
-		m_currentBlobInPool = m_currentPool ? m_currentPool->m_firstBlob : NULL;
-	}
-	else
-	{
-		m_currentPool = NULL;
-		m_currentBlobInPool = NULL;
-	}
-
-	m_range = MemoryPoolAllocatedRange();
-}
-
-AllocationRangeIterator::AllocationRangeIterator(MemoryPool& pool, MemoryPoolBlob& blob)
-{
-	m_currentPool = &pool;
-	m_currentBlobInPool = &blob;
-	m_factory = NULL;
-	m_range = MemoryPoolAllocatedRange();
-}
-
-AllocationRangeIterator::AllocationRangeIterator(MemoryPool* pool, MemoryPoolBlob* blob)
-{
-	m_currentPool = pool;
-	m_currentBlobInPool = blob;
-	m_factory = NULL;
-	m_range = MemoryPoolAllocatedRange();
-}
-
-void AllocationRangeIterator::updateRange()
-{
-	if (m_currentBlobInPool == NULL)
-	{
-		m_range.allocationAddr = nullptr;
-		m_range.allocationSize = 0;
-		return;
-	}
-
-	m_currentBlobInPool->fillAllocatedRange(m_range);
-}
-
-void AllocationRangeIterator::moveToNextBlob()
-{
-	if (m_currentBlobInPool == NULL)
-	{
-		return;
-	}
-
-	// Advances to the next blob, advancing to the next MemoryPool if needed.
-	m_currentBlobInPool = m_currentBlobInPool->getNextInList();
-	if (m_currentBlobInPool != NULL)
-	{
-		return;
-	}
-	do
-	{
-		m_currentPool = m_currentPool->getNextPoolInList();
-	} while (m_currentPool != NULL && m_currentPool->m_firstBlob == NULL);
-
-	if (m_currentPool != NULL)
-	{
-		m_currentBlobInPool = m_currentPool->m_firstBlob;
-	}
-	else
-	{
-		m_currentBlobInPool = NULL;
-	}
-}
-
-AllocationRangeIterator& AllocationRangeIterator::operator++()
-{
-	moveToNextBlob();
-	updateRange();
-	return *this;
-}
-
-AllocationRangeIterator AllocationRangeIterator::operator++(int)
-{
-	AllocationRangeIterator tmp = *this;
-	++(*this);
-	return tmp;
-}
-
-const bool operator== (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
-{
-	return a.m_currentBlobInPool == b.m_currentBlobInPool;
-}
-
-const bool operator!= (const AllocationRangeIterator& a, const AllocationRangeIterator& b)
-{
-	return a.m_currentBlobInPool != b.m_currentBlobInPool;
 }
 #endif
 
