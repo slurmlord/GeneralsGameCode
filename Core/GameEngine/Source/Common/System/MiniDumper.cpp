@@ -333,7 +333,7 @@ DWORD WINAPI MiniDumper::MiniDumpThreadProc(LPVOID lpParam)
 
 void MiniDumper::CreateMiniDump(DumpType dumpType)
 {
-	// Create a unique dump file name, using the path from m_dumpDir, in m_dumpFile 
+	// Create a unique dump file name, using the path from m_dumpDir, in m_dumpFile
 	SYSTEMTIME sysTime;
 	::GetLocalTime(&sysTime);
 #if RTS_GENERALS
